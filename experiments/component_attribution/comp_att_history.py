@@ -38,13 +38,13 @@ def make_all_plots(kernel, plot_dir, loader):
             )
 
 
-experiment_path = "results/modulo_val_results_wreg/"
+experiment_path = "results/modulo_val_results/"
 
 train_loader = torch.load(experiment_path + "train_loader_N=4000.pt")
 val_loader = torch.load(experiment_path + "val_loader_N=4000.pt")
 
 # load step matrices
-kernel_path = 'results/modulo_val_results_wreg/kernel_matrices/'
+kernel_path = 'results/modulo_val_results/kernel_matrices/'
 
 step_kernels = []  # will be list of dicts of layer_name -> torch tensors of shape (num_val, num_params) = (2000, num_params)
 step_regs = []
@@ -66,7 +66,7 @@ for i, step_kernel in tqdm(enumerate(step_kernels)):
     if i*50 not in [200, 250, 500, 1100, 1900]:
         continue
     print(f"Plotting step kernel {i}")
-    plot_dir = f"results/modulo_val_results_wreg/plots/step_kernels/step_kernels_{i*50}/"
+    plot_dir = f"results/modulo_val_results/plots/step_kernels/step_kernels_{i*50}/"
 
     # need to combine both to have equivalent kernel as in other plots
     combined_step_kernel = {}

@@ -19,8 +19,8 @@ optimizer_checkpoint_path = experiment_path + "optimizer_checkpoint.pt"
 data_checkpoint_path = experiment_path + "data_checkpoint.pt"
 
 # load datasets
-train_loader = torch.load(experiment_path + "train_loader_N=4000.pt")
-val_loader = torch.load(experiment_path + "val_loader_N=4000.pt")
+train_loader = torch.load(experiment_path + "train_loader_N=4000.pt", weights_only=False)
+val_loader = torch.load(experiment_path + "val_loader_N=4000.pt", weights_only=False)
 
 data_path = DataPath(train_loader,
                         checkpoint_path=data_checkpoint_path,
