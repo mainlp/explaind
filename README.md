@@ -17,13 +17,13 @@ conda activate explaind
 
 git clone git@github.com:mainlp/explaind.git
 
-pip install torch torchvision numpy tqdm tensorboard
+pip install torch torchvision numpy tqdm tensorboard pandas
 ```
 
 If you also want to recreate the plots shown in the paper, you additionally need the following packages:
 
 ```setup
-pip install plotly pandas umap_learn
+pip install plotly umap_learn
 ```
 
 Alternatively, you can also install from the requirements file:
