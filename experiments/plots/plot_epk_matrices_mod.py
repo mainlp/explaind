@@ -8,7 +8,7 @@ import os
 
 device = "cpu"# "cuda" if torch.cuda.is_available() else "cpu"
 
-experiment_path = "results/modulo_val_results_wreg/"
+experiment_path = "results/modulo_val_result/"
 
 train_loader = torch.load(experiment_path + "train_loader_N=4000.pt")
 val_loader = torch.load(experiment_path + "val_loader_N=4000.pt")
