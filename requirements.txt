@@ -1,6 +1,6 @@
 numpy==2.2.6
 plotly==6.1.1
 torch==2.7.0
-torchvision==.22.0
+torchvision==0.22.0
 tqdm==4.67.1
 umap-learn==0.5.7
