@@ -26,6 +26,19 @@ If you also want to recreate the plots shown in the paper, you additionally need
 pip install plotly pandas umap_learn
 ```
 
+To recreate the versions we used for our experiments, you can also install from the requirements file:
+
+```setup
+pip install -r requirements.txt
+```
+
+Finally, we also provide a PyPi package, which you can directly install with pip:
+
+```setup
+pip install explaind  # TODO
+```
+
+Note, that this will only install the code contained in `explaind/`. To replicate our experiments, you will still need to clone this repository.
 
 ## Training models with history
 
