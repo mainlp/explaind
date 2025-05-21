@@ -37,7 +37,7 @@ pip install -r requirements.txt
 Finally, we also provide a PyPi package, which you can directly install with pip:
 
 ```setup
-pip install explaind  # TODO
+pip install explaind
 ```
 
 Note, that this will only install the code contained in `explaind/`. To replicate our experiments, you will still need to clone this repository.
