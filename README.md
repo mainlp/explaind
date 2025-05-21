@@ -93,7 +93,7 @@ Note that there are different settings for which (accumulated) slices of the ker
 
 ## Experiments, ablations, and plots
 
-Besides further instructions on how to reproduce the experiments in our paper, the `experiments/` folder contains all the scripts to run additional experiments, ablations, and generate plots.
+Besides further instructions on how to reproduce the experiments in our paper, the `experiments/` folder contains all the scripts to run additional experiments, ablations, and generate plots. Any checkpoints, plots or other artifacts will be stored in `results/` by default.
 
 
 ## Contributing
