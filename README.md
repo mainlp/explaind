@@ -14,11 +14,18 @@ conda create -n explaind python=3.12
 conda activate explaind
 ```
 
-The requirements amount to current versions of `torch` and `plotly`:
+For applying and validating ExPLAIND, the requirements amount to current versions of `torch`, `plotly`, and `numpy`:
 
 ```setup
-pip install torch torchvision plotly numpy tqdm pandas
+pip install torch torchvision numpy tqdm
 ```
+
+If you also want to recreate the plots shown in the paper, you additionally need the following packages:
+
+```setup
+pip install plotly pandas umap
+```
+
 
 ## Training models with history
 
