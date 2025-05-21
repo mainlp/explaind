@@ -9,7 +9,7 @@ This repository is the official implementation of [Grokking ExPLAIND: Unifying M
 
 ### Manual installation
 
-We ran all our experiments in python version `3.12`. You can use `conda` to create a fresh environment first, clone our repository, and install the necessary packages using `pip`.
+We ran all our experiments in python version `3.12.7`. You can use `conda` to create a fresh environment first, clone our repository, and install the necessary packages using `pip`.
 
 ```
 conda create -n explaind python=3.12
