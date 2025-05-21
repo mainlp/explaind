@@ -7,16 +7,16 @@ This repository is the official implementation of [Grokking ExPLAIND: Unifying M
 
 ## Requirements
 
-We ran all our experiments in python version `3.12`. You can use `conda` to create a fresh environment first:
+### Manual installation
+
+We ran all our experiments in python version `3.12`. You can use `conda` to create a fresh environment first, clone our repository, and install the necessary packages using `pip`.
 
 ```
 conda create -n explaind python=3.12
 conda activate explaind
-```
 
-For applying and validating ExPLAIND, the requirements amount to current versions of `torch`, `plotly`, and `numpy`:
+git clone git@github.com:mainlp/explaind.git
 
-```setup
 pip install torch torchvision numpy tqdm
 ```
 
@@ -26,11 +26,13 @@ If you also want to recreate the plots shown in the paper, you additionally need
 pip install plotly pandas umap_learn
 ```
 
-To recreate the versions we used for our experiments, you can also install from the requirements file:
+Alternatively, you can also install from the requirements file:
 
 ```setup
 pip install -r requirements.txt
 ```
+
+### PyPi installation
 
 Finally, we also provide a PyPi package, which you can directly install with pip:
 
