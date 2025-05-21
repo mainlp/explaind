@@ -17,7 +17,7 @@ conda activate explaind
 
 git clone git@github.com:mainlp/explaind.git
 
-pip install torch torchvision numpy tqdm
+pip install torch torchvision numpy tqdm tensorboard
 ```
 
 If you also want to recreate the plots shown in the paper, you additionally need the following packages:
