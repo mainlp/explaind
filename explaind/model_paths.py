@@ -254,23 +254,17 @@ class ModelPath(nn.Module):
     
     def _grad_feature_map(self, X, target_mask):
 
-        # print(X.shape, target_mask.shape)
-
         # reset grads
         self.model.zero_grad()
 
         # only keep float valued params
         params = {}
         for k, v in self.model.state_dict().items():
-            # print(k, v.shape, v.type(), v.dtype == torch.float)
             if v.dtype == torch.float and not k.endswith(r"running_mean") and not k.endswith(r"running_var"):
                 params[k] = v
-            # else:
-            #     print(f"Skipping {k} with shape {v.shape} and type {v.type()}")
 
         if len(target_mask.shape) == 2:
             # do not parallelize over targets
-            #print(target_mask.shape)
             grads = torch.func.vmap(self._grads_out, in_dims=(None, None, 0, 0), out_dims=0)(self.model, params, X.to(self.device), target_mask)
 
             # first dim is target feature dim 
@@ -323,18 +317,10 @@ class ModelPath(nn.Module):
     def _output_fn(self, model, checkpoints, input_ids, target_mask):
         input_ids = input_ids.unsqueeze(0)
 
-
-        # print(target_mask.shape)
-        # print(input_ids.shape)
         logits = torch.func.functional_call(model, (checkpoints, dict()), args=(input_ids,))
-
-        #print(logits.shape)
-        #print((logits * target_mask).shape)
 
         if target_mask is not None:
             logits = torch.sum(logits * target_mask)
-
-        #print(logits.shape)
 
         return logits
     
@@ -342,7 +328,6 @@ class ModelPath(nn.Module):
         """
         Compute the gradients of the model's output with respect to the input.
         """
-        # print(args[-2:])
         return torch.func.grad(self._output_fn, has_aux=False, argnums=1)(*args, **kwargs)
     
     def get_target_mask(self, target, device):

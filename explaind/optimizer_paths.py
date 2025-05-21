@@ -316,12 +316,9 @@ class AdamWOptimizerPath(OptimizerPath):
         """
         # this changes for other optimizers
 
-        # print(grads, previous, step, ids, dataset_size)
         update = {}
         for k, v in  grads.items():
-            # print("Key: ", k, "Value: ", v.shape)
-            # if previous is not None and k in previous:
-            #     print("Previous: ", previous[k].shape)
+
             if previous is None:
                 previous = {}
 
@@ -332,7 +329,6 @@ class AdamWOptimizerPath(OptimizerPath):
                 if step != 0:
                     raise ValueError("Previous is missing keys. This should only happen after the first step.")
                 previous[k] = torch.zeros((grads[k].shape[0], dataset_size, grads[k].shape[2]), dtype=grads[k].dtype, device=grads[k].device)
-                print("Previous", previous[k].shape, grads[k].shape, dataset_size)
             
             # assign previous value for the samples in this batch
             # exp_avg[k] = self.beta1 * previous[k] + (1 - self.beta1) * grads[k]
@@ -340,7 +336,6 @@ class AdamWOptimizerPath(OptimizerPath):
 
             update[k] = previous[k][:, ids].to(grads[k].device) + (1 - self.beta1) * grads[k]
 
-            # print("shapes", previous[k].shape, previous[k][:, ids].shape, grads[k].shape)
             previous[k][:, ids] = update[k]
 
         # apply second moment average scaling
@@ -411,8 +406,7 @@ class AdamWOptimizerPath(OptimizerPath):
 
         step_reg_term = None
         for k, v in step_reg.items():
-            # print("step reg device:", v.device)
-            # print("step reg term device:", step_reg_term.device)
+
             if step_reg_term is None:
                 step_reg_term = v
             else:
@@ -424,16 +418,11 @@ class AdamWOptimizerPath(OptimizerPath):
                 prev_eval["param_reg_term"] = param_reg_term
             else:
                 for name, v in param_reg_term.items():
-                    print("Param reg kernel:", name, v.shape)
                     prev_eval["param_reg_term"][name] = prev_eval["param_reg_term"][name] + v
             if step % param_kernel_store_interval == 0:
                 prev_eval[f"param_reg_kernel_step_{step}"] = prev_eval["param_reg_term"]
                 # reset
                 prev_eval["param_reg_term"] = None
-
-        # print(step_kernel.keys())
-
-        #print("Regularization term:", reg_sign * step_reg * lr * weight_decay, step_reg.shape)
 
         return - self.get_learning_rate(step + 1) * step_reg_term, step_reg_features
     
@@ -529,7 +518,6 @@ class SGDOptimizerPath(OptimizerPath):
         Log the optimizer checkpoint.
         """
         state_dict = self.optimizer.state_dict()
-        # print("Logging checkpoint, current length: ", len(self.checkpoints))
         self.add_to_history(state_dict)
 
     def test_feature_map(self, grads, step):
@@ -550,16 +538,10 @@ class SGDOptimizerPath(OptimizerPath):
 
         step_reg_term = None
         for k, v in step_reg.items():
-            # print("step reg device:", v.device)
-            # print("step reg term device:", step_reg_term.device)
             if step_reg_term is None:
                 step_reg_term = v
             else:
                 step_reg_term = step_reg_term + v
-
-        # print(step_kernel.keys())
-
-        #print("Regularization term:", reg_sign * step_reg * lr * weight_decay, step_reg.shape)
 
         return - self.get_reg_sign() * self.get_learning_rate(step + 1) * step_reg_term, step_reg_features
 
@@ -572,11 +554,6 @@ class SGDOptimizerPath(OptimizerPath):
         if previous is None and self.momentum != 0:
             previous = {}
             for k, v in grads.items():
-                # print("initiating previous, size: ", v.shape)
-                # assign previous value for the samples in this batch
-                # print(k)
-                # print(v.shape, grads[k].shape)
-                # print((num_val_samples, v.shape[0], dataset_size, v.shape[2]))
 
                 if self.buffer_device_mapping is not None and self.buffer_float16:
                     previous[k] = torch.zeros((v.shape[0], dataset_size, v.shape[2]), dtype=torch.float16, device=self.buffer_device_mapping[k])
@@ -592,7 +569,6 @@ class SGDOptimizerPath(OptimizerPath):
                     previous[k] = torch.zeros((v.shape[0], dataset_size, v.shape[2])).cpu()
                 else:
                     previous[k] = torch.zeros((v.shape[0], dataset_size, v.shape[2])).to(self.device)
-                # print("After: ", previous[k].shape)
 
 
         # apply weight decay
@@ -612,22 +588,11 @@ class SGDOptimizerPath(OptimizerPath):
             elif self.buffer_on_cpu and self.momentum != 0:
                 grads[k] = grads[k].cpu()
 
-            # apply weight decay
-            # if self.weight_decay != 0:
-            #     grads[k] = grads[k] + 1 / 256 * self.weight_decay * self.model.checkpoints[step][k].to(grads[k].device).flatten()
-
-
 
         # add momentum features
         if previous is not None and self.momentum != 0:
             for k, v in previous.items():
-                #print(next_avg[k].shape, step_kernel[k].shape)
-                #print("devices", next_avg[k].device, step_kernel[k].device)
-
                 previous[k] *= self.momentum
-
-        
-                # rint(previous[k][:, ids].shape, grads[k].shape)
                 previous[k][:, ids] = previous[k][:, ids] + (1 - self.dampening) * grads[k].to(grads[k].device)
 
         else:
@@ -649,13 +614,7 @@ class SGDOptimizerPath(OptimizerPath):
             elif self.buffer_on_cpu:
                 data_features = {name: v.cpu() for name, v in data_features.items()}
 
-            # for k, v in data_features.items():
-            #     print("Data features: ", k, v.shape, train_features[k].shape)
-
             step_kernel = {name: torch.einsum("abc,dec->adbe", data_features[name], train_features[name]) for name in data_features.keys()}
-
-            # for k, v in step_kernel.items():
-            #     print("Step kernel: ", k, v.shape)
 
             # put kernel back on device
             step_kernel = {name: v.to(self.device).to(torch.float32) for name, v in step_kernel.items()}
@@ -678,8 +637,6 @@ class SGDOptimizerPath(OptimizerPath):
             elif self.buffer_on_cpu:
                 data_features = {name: v.cpu() for name, v in data_features.items()}
 
-            for k, v in data_features.items():
-                print("Data features: ", k, v.shape, train_features[k].shape)
             step_kernel = {name: torch.einsum("abc,dec->abdc", data_features[name], train_features[name]) for name in data_features.keys()}
 
             # put kernel back on device

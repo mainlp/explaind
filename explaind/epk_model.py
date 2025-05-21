@@ -107,22 +107,11 @@ class ExactPathKernelModel:
                                                                                         prev_eval=prev_eval)
 
 
-            # step_prediction = kernel_matrices.sum(dim=0)
-            # for k, v in step_kernel.items():
-            #     print(v.shape)
-            #     print("step kernel device:", v.device)
-            #     break
-            
-            # print("batch size:", len(ids))
             step_prediction = self.get_prediction_from_kernel(step_kernel, batch_size=len(ids))
 
             lr = self.optimizer.get_learning_rate(train_step + 1)
 
             current_prediction = current_prediction - lr * step_prediction
-            
-            # weight_decay = self.optimizer.get_weight_decay(train_step + 1)
-            
-            #print("step_regularization term device:", step_regularization_term.device)
 
             step_reg_term, step_reg_features = self.optimizer.get_reg_term(data_features, 
                                                                            step_reg_features, 
@@ -154,19 +143,12 @@ class ExactPathKernelModel:
                                          step_kernel[name].shape[2], len(self.data_path.dataloader.dataset)), device=self.device) for name in step_kernel.keys()}
 
         for k, v in step_kernel.items():
-            # print("kernel shape:", kernel[k].shape, kernel[k][:, :, :, ids].shape, v.shape)
             if v.shape[-1] == len(ids):
                 kernel[k][:, :, :, ids] = kernel[k][:, :, :, ids] + v * lr
             else:
                 kernel[k] = kernel[k] + v * lr
 
         if prev_eval is not None:
-            # kernel_abs_sums = {k: torch.sum(torch.abs(v), dim=-1).cpu() for k, v in kernel.items()}
-            # if "kernel_abs_sums" in prev_eval:
-            #     prev_eval["kernel_abs_sums"].append(kernel_abs_sums)
-            # else:
-            #     prev_eval["kernel_abs_sums"] = [kernel_abs_sums]
-            
             if  step % self.kernel_store_interval == 0:
                 if "kernel_influence_val" in prev_eval:
                     prev_eval["kernel_step_matrix"].append({k: kernel[k].sum(dim=1).sum(dim=1).detach().clone().cpu() for k in kernel.keys()})
@@ -185,17 +167,13 @@ class ExactPathKernelModel:
     
     def get_prediction_from_kernel(self, kernel, batch_size=4000):
         # sum up parameter-wise kernel vals
-        # print("batch size:", batch_size)
         combined = None
         for k, v in kernel.items():
-            # print(v.shape)
             # sum up over train data dim
-            # print(v.shape)
             v_summed = torch.sum(v, dim=-1).reshape(v.shape[0], v.shape[2])
             if combined is None:
                 combined = v_summed
             else:
-                #print(combined.device, v_summed.device)
                 combined = combined + v_summed
         return combined * (-1.0) / batch_size
     
@@ -229,20 +207,8 @@ class ExactPathKernelModel:
         evaluation["step_mean_delta"] = torch.sum(torch.abs(ground_truth_step - step - reg_term)).item() / ground_truth_step.shape[1] / ground_truth_step.shape[0]
         evaluation["step_max_delta"] = torch.max(torch.abs(ground_truth_step - step - reg_term)).item()
 
-        # print(prev_output.shape)
-        # print("Actual output:\n", current_output[:min(5, prev_output.shape[0])])
-        # print("Predicted output:\n", other_prediction[:min(5, other_prediction.shape[0])])
-
-        # print("Actual step:\n", ground_truth_step[:min(5, ground_truth_step.shape[0])])
-        # print("Other step:\n", (step)[:min(5, step.shape[0])])
-
-        # print("Of which is regularization term:\n", reg_term[:min(5, reg_term.shape[0])])
-        
-        # print("Step differences:\n", (ground_truth_step - step - reg_term)[:min(5, (ground_truth_step - step - reg_term).shape[0])])
-
-        # print("ground truth / step\n", (ground_truth_step / (step + reg_term))[:min(5, (ground_truth_step / step).shape[0])])
-        print(f"Step differ at step {train_step} by {evaluation['step_mean_delta']} on avg. Max diff: {evaluation['step_max_delta']}")
-        print(f"Predictions differ at step {train_step} by {evaluation['predictions_mean_delta']} on avg. Max diff: {evaluation['predictions_max_delta']}")
+        print(f"Prediction-changes differ at step {train_step} by {evaluation['step_mean_delta']} on avg. (Max diff: {evaluation['step_max_delta']})")
+        print(f"Predictions differ at step {train_step} by {evaluation['predictions_mean_delta']} on avg. (Max diff: {evaluation['predictions_max_delta']})")
         
         if prev_eval is None:
             prev_eval = {k: [v] for k, v in evaluation.items()}
@@ -261,7 +227,6 @@ class ExactPathKernelModel:
         # todo for other loss types
         
         loss_grads = []
-        #print(self.loss_fn)
         if type(self.loss_fn) is RegularizedCrossEntropyLoss or type(self.loss_fn) is torch.nn.CrossEntropyLoss:
             target_mask = self.get_target_mask(y, device=self.device)
             loss_grads = target_mask * -1
@@ -314,23 +279,10 @@ class ExactPathKernelModel:
                                                           pred_steps,
                                                           optimizer=self.optimizer)
 
-        # step_kernel = {name: torch.matmul(data_features[name], train_features[name].T) for name in data_features.keys()}
-
-        # print dims of data_features and train_features
-        # for k, v in data_features.items():
-        #     print(f"Data features {k} shape: {v.shape}")
-        #     print(f"Train features {k} shape: {train_features[k].shape}")
-        #     print("kernel shape:", torch.einsum("abc,dec->abde", v, train_features[k]).shape)
-
-        # for k in data_features.keys():
-        #     print(f"Data features {k} shape: {data_features[k].shape} and train features {k} shape: {train_features[k].shape}")
-        #print("optimizer", self.optimizer)
-        # print(self.optimizer.optimizer)
         if self.keep_param_wise_kernel:
             param_step_kernel = self.optimizer.get_param_wise_kernel(data_features, train_features, to_cpu=False, 
                                                                      keep_out_dims=self.param_wise_kernel_keep_out_dims)
             # concat different mocel parts
-            # param_step_kernel = torch.cat([v for k, v in param_step_kernel.items()], dim=-1)
             for k, v in param_step_kernel.items():
                 param_step_kernel[k] *= self.optimizer.get_learning_rate(train_step + 1) * (1 / len(y_train))
 
@@ -345,38 +297,12 @@ class ExactPathKernelModel:
             if train_step % self.kernel_store_interval == 0 and y_test is not None:
                 step_key = f"param_kernel_step_{train_step}"
                 # get the slice of the positive class
-                for k, v in param_step_kernel.items():
-                    print(f"Param kernel {k} shape: {v.shape}")
                 param_kernel_acc = {k: v.sum(dim=1).sum(dim=1).detach().clone().cpu() for k, v in prev_eval["param_kernel"].items()}
-                # take the slice of the correct class in y_test
-                #print(y_test.shape)  # == 250, 
-                #param_kernel_acc_correct = {}
-                # for k, v in param_kernel_acc.items():
-                #     print(v.shape)
-                #     print(y_test.shape)
-                #     y_test_mask = torch.zeros(v.shape[0], v.shape[1], device=v.device, dtype=torch.bfloat16)
-                #     for i, y in enumerate(y_test):
-                #         y_test_mask[i, y] = 1
-                #     param_kernel_acc_correct[k] = torch.einsum("abc,ab->ac", v.to(torch.bfloat16), y_test_mask).detach().cpu()
-                #     print(param_kernel_acc_correct[k].shape)
-                
-                # prev_eval[step_key + "_correct"] = param_kernel_acc_correct
-                
-                # param_kernel_acc_incorrect = {}
-                # for k, v in param_kernel_acc.items():
-                #     print(v.shape)
-                #     print(y_test.shape)
-                #     y_test_mask = torch.ones(v.shape[0], v.shape[1], device=v.device, dtype=torch.bfloat16)
-                #     for i, y in enumerate(y_test):
-                #         y_test_mask[i, y] = 0
-                #     param_kernel_acc_incorrect[k] = torch.einsum("abc,ab->ac", v.to(torch.bfloat16), y_test_mask).detach().cpu()
-                #     print(param_kernel_acc_incorrect[k].shape)
 
                 prev_eval[step_key] = param_kernel_acc
                 # reset
                 prev_eval["param_kernel"] = {k: torch.zeros(v.shape, device=self.device) for k, v in param_step_kernel.items()}
-                #mask = torch.zeros(y_test.shape[0], y_test.shape[1], device=self.device, dtype=torch.float32)
-                #param_kernel_correct = {k: torch.dot
+
 
         step_kernel, next_avg = self.optimizer.get_step_kernel(data_features, train_features, train_step, next_avg, ids)
 
@@ -386,7 +312,7 @@ class ExactPathKernelModel:
         if train_step % self.kernel_store_interval == 0:
             for k, v in step_kernel.items():
                 store_step_kernel[k] = v.sum(dim=1).sum(dim=1).detach().cpu().clone()
-                print("Store step kernel shape:", store_step_kernel[k].shape)
+
             prev_eval[f"kernel_step_matrix_{train_step}"] = store_step_kernel
 
         last_avg = next_avg
