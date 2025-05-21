@@ -1,0 +1,62 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "explaind"
+version = "0.0.1"
+description = "A unified framework for attributing model components, data, and training dynamics to model behavior."
+readme = "README.md"
+license = {file = "LICENSE"}
+requires-python = ">=3.12"
+authors = [
+    { name = "Florian Eichin", email = "feichin@cis.lmu.de" },
+]
+keywords = [
+    "neural networks",
+    "interpretability",
+    "explainability",
+    "training dynamics",
+    "data attribution",
+    "model attribution",
+    "kernel machines"
+]
+
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX",
+    "Operating System :: Unix",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "numpy>=2.2.6",
+    "plotly>=6.1.1",
+    "torch>=2.7.0",
+    "torchvision>=0.22.0",
+    "tqdm>=4.67.1",
+    "umap-learn>=0.5.7"
+]
+
+[tool.setuptools.packages.find]
+include = ["explaind*"]
+exclude = ["tests", "experiments"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+extend-select = ["E501"]
+
+[project.urls]
+Documentation = "https://github.com/mainlp/explaind"
+Homepage = "https://github.com/mainlp/explaind"
+Issues = "https://github.com/mainlp/explaind/issues"
+Repository = "https://github.com/mainlp/explaind"

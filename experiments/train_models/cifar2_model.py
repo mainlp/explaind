@@ -65,7 +65,7 @@ def apply_mask_to_loader(loader, mask_path):
     return filtered_loader
 
 
-def train_epk_cifar(epk_history=True, checkpoint_path="results/", loader=None, store_trak_checkpoints=True,
+def train_epk_cifar(epk_history=True, checkpoint_path="results/", loader=None, store_other_checkpoints=True,
                     mask_path=None,
                      seed=42, lr=0.1, epochs=24, momentum=0.9, batch_size=512, cifar_type="cifar10",
           weight_decay=5e-4, lr_peak_epoch=5, model_id=0, device='cuda', random_subset_alpha=-1):
@@ -198,7 +198,7 @@ def train_epk_cifar(epk_history=True, checkpoint_path="results/", loader=None, s
 
         print(f"Validation Accuracy: {val_acc:.4f}")
 
-        if store_trak_checkpoints:
+        if store_other_checkpoints:
             torch.save(model.state_dict(), f'{checkpoint_path}{cifar_type}/checkpoints/standard/model_{model_id}/sd_{model_id}_epoch_{ep}.pt')
 
     # Save the model and optimizer checkpoints
@@ -206,7 +206,7 @@ def train_epk_cifar(epk_history=True, checkpoint_path="results/", loader=None, s
         model.save_checkpoints()
         opt.save_checkpoints()
         datapath.save_checkpoints()
-    if store_trak_checkpoints:
+    if store_other_checkpoints:
         torch.save(model.state_dict(), f'{checkpoint_path}{cifar_type}/checkpoints/standard/model_{model_id}/sd_{model_id}_final.pt')
 
     if epk_history:
@@ -303,9 +303,9 @@ def evaluate(model, loader, datapath=None, model_id=0, device=device):
 if __name__ == '__main__':
 
     model, opt, datapath = train_epk_cifar(epk_history=True,
-                                           store_trak_checkpoints=False,
+                                           store_other_checkpoints=False,
                                            device=device, 
-                                           cifar_type="cifar10",
+                                           cifar_type="cifar2",
                                            batch_size=512,
                                            epochs=12, 
                                            lr=0.1, 

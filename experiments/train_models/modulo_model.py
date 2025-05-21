@@ -487,7 +487,10 @@ if __name__ == '__main__':
     checkpoint_path = 'results/modulo_val_results/'
     n_samples = 4000
     p = 113
-    new_data = False
+    new_data = True
+
+    if not os.path.exists(checkpoint_path):
+        os.makedirs(checkpoint_path)
 
     if new_data:
         train_loader, val_loader, data = generate_data(n_samples, 2000, p=p, power=1, batch_size=None)

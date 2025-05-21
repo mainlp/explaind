@@ -9,9 +9,6 @@ import json
 import os
 from tqdm import tqdm
 
-import plotly.express as px
-import plotly.graph_objects as go
-
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -70,7 +67,8 @@ epk = ExactPathKernelModel(
     kernel_store_interval=50,
 )
 
-val_loader = torch.utils.data.DataLoader(val_loader.dataset, batch_size=340, shuffle=False)
+# make batch size small enough so you don't run OOM
+val_loader = torch.utils.data.DataLoader(val_loader.dataset, batch_size=10, shuffle=False)
 
 # from torch.profiler import profile, record_function, ProfilerActivity
 
@@ -287,52 +285,3 @@ for k in preds[0][1][4].keys():
     torch.save(for_storing[k], experiment_path + f"{k}.pt")
 
     del for_storing[k]
-
-
-# # divide the float values by the number of batches and stack dict tensors
-# for k in for_storing.keys():
-#     if type(for_storing[k]) is list and type(for_storing[k][0]) is float:
-#         for i in range(len(for_storing[k])):
-#             for_storing[k][i] /= len(preds)
-
-# store each key in a separate file
-for k in for_storing.keys():
-    torch.save(for_storing[k], experiment_path + f"{k}.pt")
-
-
-# make a scatter plot of all the float valued ones
-for k in for_storing.keys():
-    print(k)
-    if type(for_storing[k]) is list and type(for_storing[k][0]) is float:
-        fig = px.scatter(x=list(range(len(for_storing[k]))), y=for_storing[k])
-        fig.update_layout(title=k)
-        fig.update_xaxes(title_text="step")
-        fig.update_yaxes(title_text="value")
-        fig.write_image(experiment_path + f"{k}.png")
-        fig.write_html(experiment_path + f"{k}.html")
-
-    elif type(for_storing[k]) is dict and type(for_storing[k][list(for_storing[k].keys())[0]]) is float:
-        data = []
-        for k2 in for_storing[k].keys():
-            print(for_storing[k][k2].shape)
-            all_vals = for_storing[k][k2].abs().sum(-1).sum(-1)
-            plot_means = all_vals.mean(0)
-            plot_stds = all_vals.std(0)
-            data.append(go.Scatter(x=list(range(len(plot_means))), y=plot_means, name=k2))
-
-        fig = go.Figure(data=data)
-        fig.update_layout(title=k)
-        fig.update_xaxes(title_text="step")
-        fig.update_yaxes(title_text="value")
-        fig.write_image(experiment_path + f"{k}.png")
-        fig.write_html(experiment_path + f"{k}.html")
-
-        # also with logarithmic y axis
-        fig.update_yaxes(type="log")
-        fig.write_image(experiment_path + f"{k}_log.png")
-        fig.write_html(experiment_path + f"{k}_log.html")
-   
-# import sys
-# sys.exit(0)
-
-

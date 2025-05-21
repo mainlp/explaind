@@ -121,7 +121,8 @@ epk = ExactPathKernelModel(
 torch.cuda.empty_cache()
 
 
-val_loader = get_dataloader(batch_size=200, num_workers=1, split='test', shuffle=False, augment=False, type="cifar2")[0]
+# make batch size small enough so you don't run OOM
+val_loader = get_dataloader(batch_size=10, num_workers=1, split='test', shuffle=False, augment=False, type="cifar2")[0]
 
 
 # from torch.profiler import profile, record_function, ProfilerActivity
