@@ -7,13 +7,25 @@ This repository is the official implementation of [Grokking ExPLAIND: Unifying M
 
 ## Requirements
 
-To install requirements:
+We ran all our experiments in python version `3.12`. You can use `conda` to create a fresh environment first:
 
-```setup
-pip install -r requirements.txt
+```
+conda create -n explaind python=3.12
+conda activate explaind
 ```
 
-Basically, all you need is a current version of `torch` and `plotly`.
+For applying and validating ExPLAIND, the requirements amount to current versions of `torch`, `plotly`, and `numpy`:
+
+```setup
+pip install torch torchvision numpy tqdm
+```
+
+If you also want to recreate the plots shown in the paper, you additionally need the following packages:
+
+```setup
+pip install plotly pandas umap_learn
+```
+
 
 ## Training models with history
 
