@@ -6,7 +6,7 @@ import pandas as pd
 
 device = "cpu"# "cuda" if torch.cuda.is_available() else "cpu"
 
-experiment_path = "results/modulo_val_results_wreg/plots/inject_pipeline_train/"
+experiment_path = "results/modulo_val_results/plots/inject_pipeline_train/"
 
 
 # load pipeline results

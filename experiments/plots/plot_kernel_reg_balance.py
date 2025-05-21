@@ -7,8 +7,8 @@ import pandas as pd
 
 device = "cpu"
 
-experiment_path = "results/modulo_val_results_wreg/"
-plot_dir = "results/modulo_val_results_wreg/plots/kernel_reg_balance/"
+experiment_path = "results/modulo_val_results/"
+plot_dir = "results/modulo_val_results/plots/kernel_reg_balance/"
 
 inclusive_colors = ["#000000", "#E69F00", "#56B4E9", "#009E73", # "#F0E442",
                     "#0072B2", "#D55E00", "#CC79A7"]
@@ -17,7 +17,7 @@ train_loader = torch.load(experiment_path + "train_loader_N=4000.pt")
 val_loader = torch.load(experiment_path + "val_loader_N=4000.pt")
 
 # load step matrices
-kernel_path = 'results/modulo_val_results_wreg/kernel_matrices/'
+kernel_path = 'results/modulo_val_results/kernel_matrices/'
 
 step_kernels = []  # will be list of dicts of layer_name -> torch tensors of shape (num_val, num_params) = (2000, num_params)
 step_regs = []

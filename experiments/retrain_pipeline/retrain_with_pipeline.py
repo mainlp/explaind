@@ -118,7 +118,7 @@ def train_model(
     epochs=200,
     lr=0.001,
     weight_decay=1.0,
-    log_path="results/modulo_val_results_wreg/pipeline_train/",
+    log_path="results/modulo_val_results/pipeline_train/",
     seed=42,
 ):
     os.makedirs(log_path, exist_ok=True)
@@ -249,8 +249,8 @@ def train_model(
 
 
 if __name__ == "__main__":
-    experiment_path = "results/modulo_val_results_wreg/"
-    plot_path = "results/modulo_val_results_wreg/plots/inject_pipeline_train/"
+    experiment_path = "results/modulo_val_results/"
+    plot_path = "results/modulo_val_results/plots/inject_pipeline_train/"
 
     os.makedirs(plot_path, exist_ok=True)
 

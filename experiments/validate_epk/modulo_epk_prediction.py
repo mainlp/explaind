@@ -12,7 +12,7 @@ from tqdm import tqdm
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-experiment_path = "results/modulo_val_results_wreg/"
+experiment_path = "results/modulo_val_results/"
 os.makedirs(experiment_path, exist_ok=True)
 model_checkpoint_path = experiment_path + "model_checkpoint.pt"
 optimizer_checkpoint_path = experiment_path + "optimizer_checkpoint.pt"
