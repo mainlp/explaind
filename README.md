@@ -34,7 +34,7 @@ pip install -r requirements.txt
 
 ### PyPi installation
 
-Finally, we also provide a PyPi package, which you can directly install with pip:
+We also provide a PyPi package, which you can directly install with pip:
 
 ```setup
 pip install explaind
