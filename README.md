@@ -23,7 +23,7 @@ pip install torch torchvision numpy tqdm
 If you also want to recreate the plots shown in the paper, you additionally need the following packages:
 
 ```setup
-pip install plotly pandas umap
+pip install plotly pandas umap_learn
 ```
 
 
