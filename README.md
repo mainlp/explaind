@@ -85,7 +85,7 @@ for i, (X, y) in enumerate(val_loader):
     torch.cuda.empty_cache()
     X = X.to(device)
     y = y.to(device)
-    pred = epk.predict(X, y_test=y, is_train=False, keep_kernel_matrices=True)
+    pred = epk.predict(X, y_test=y, keep_kernel_matrices=True)
     preds.append((i, pred, y))
 ```
 
