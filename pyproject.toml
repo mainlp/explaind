@@ -42,7 +42,9 @@ dependencies = [
     "torch>=2.7.0",
     "torchvision>=0.22.0",
     "tqdm>=4.67.1",
-    "umap-learn>=0.5.7"
+    "umap-learn>=0.5.7",
+    "tensorboard==2.19.0",
+    "pandas==2.2.3",
 ]
 
 [tool.setuptools.packages.find]
