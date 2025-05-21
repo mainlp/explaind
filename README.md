@@ -7,25 +7,40 @@ This repository is the official implementation of [Grokking ExPLAIND: Unifying M
 
 ## Requirements
 
-We ran all our experiments in python version `3.12`. You can use `conda` to create a fresh environment first:
+### Manual installation
+
+We ran all our experiments in python version `3.12.7`. You can use `conda` to create a fresh environment first, clone our repository, and install the necessary packages using `pip`.
 
 ```
 conda create -n explaind python=3.12
 conda activate explaind
-```
 
-For applying and validating ExPLAIND, the requirements amount to current versions of `torch`, `plotly`, and `numpy`:
+git clone git@github.com:mainlp/explaind.git
 
-```setup
-pip install torch torchvision numpy tqdm
+pip install torch torchvision numpy tqdm tensorboard pandas
 ```
 
 If you also want to recreate the plots shown in the paper, you additionally need the following packages:
 
 ```setup
-pip install plotly pandas umap_learn
+pip install plotly umap_learn
 ```
 
+Alternatively, you can also install from the requirements file:
+
+```setup
+pip install -r requirements.txt
+```
+
+### PyPi installation
+
+Finally, we also provide a PyPi package, which you can directly install with pip:
+
+```setup
+pip install explaind  # TODO
+```
+
+Note, that this will only install the code contained in `explaind/`. To replicate our experiments, you will still need to clone this repository.
 
 ## Training models with history
 
@@ -93,7 +108,7 @@ Note that there are different settings for which (accumulated) slices of the ker
 
 ## Experiments, ablations, and plots
 
-Besides further instructions on how to reproduce the experiments in our paper, the `experiments/` folder contains all the scripts to run additional experiments, ablations, and generate plots.
+Besides further instructions on how to reproduce the experiments in our paper, the `experiments/` folder contains all the scripts to run additional experiments, ablations, and generate plots. Any checkpoints, plots or other artifacts will be stored in `results/` by default.
 
 
 ## Contributing
