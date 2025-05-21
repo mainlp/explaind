@@ -91,7 +91,7 @@ for i, (X, y) in enumerate(val_loader):
 
 Note that there are different settings for which (accumulated) slices of the kernel to store during the prediction. Depending on your choices there, runtimes can vary greatly because of GPU I/O and extra matrix computations involved. For the complete respective valiadtion scripts, consider giving `experiments/validate_epk/` a look.
 
-## Ablations and other experiments
+## Experiments, ablations, and plots
 
 Besides further instructions on how to reproduce the experiments in our paper, the `experiments/` folder contains all the scripts to run additional experiments, ablations, and generate plots.
 
