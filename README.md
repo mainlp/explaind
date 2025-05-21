@@ -17,7 +17,7 @@ conda activate explaind
 The requirements amount to current versions of `torch` and `plotly`:
 
 ```setup
-pip install torch plotly numpy tqdm
+pip install torch plotly numpy tqdm pandas
 ```
 
 ## Training models with history
