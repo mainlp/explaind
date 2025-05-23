@@ -46,3 +46,6 @@ To run the additional experiments on model pruning or Grokking from the paper, r
 - training a random model initialized with different versions of the intermediate representation pipeline in `retrain_pipeline/`
 
 Additional scripts for plotting training or EPK prediction statistics can be found `experiments/plots/`.
+
+Note: If you decided for a manual installation and receiving a `module not found` error, try `export PYTHONPATH=.` in the in the parent directory of this repository. This will tell python to look for the `explaind` package there. 
+
