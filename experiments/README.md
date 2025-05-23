@@ -32,13 +32,13 @@ To compute the predictions, you can run the following scripts:
 
 
 ```python
-python experiments/validate_epk/cifar2_epk_predictions.py
+python experiments/validate_epk/cifar2_epk_prediction.py
 ```
 
 for the CIFAR2 model and for the modulo additon model
 
 ```python
-python experiments/validate_epk/modulo_epk_predictions.py
+python experiments/validate_epk/modulo_epk_prediction.py
 ```
 
 ## 3. Run additional experiments and plots
