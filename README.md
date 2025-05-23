@@ -1,8 +1,14 @@
-![Screenshot 2025-05-21 at 08 44 04](https://github.com/user-attachments/assets/077ef1a3-2e37-4e3a-8434-cf6673369122)
+
+[![PyPI - Python](https://img.shields.io/badge/python-v3.12+-blue.svg)](https://pypi.org/project/explaind/0.0.1/)
+[![PyPI - License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/mainlp/explaind/blob/main/LICENSE)
+[![PyPI - PyPi](https://img.shields.io/pypi/v/explaind)](https://pypi.org/project/explaind/0.0.1/)
+[![arXiv](https://img.shields.io/badge/TODO-<COLOR>.svg)](https://github.com/mainlp/explaind)
 
 # ExPLAIND: Unifying Model, Data, and Training Attribution to Study Model Behavior
 
-This repository is the official implementation of [Grokking ExPLAIND: Unifying Model, Data, and Training Attribution to Study Model Behavior](https://github.com/mainlp/path_kernels). 
+![Screenshot 2025-05-21 at 08 44 04](https://github.com/user-attachments/assets/077ef1a3-2e37-4e3a-8434-cf6673369122)
+
+This repository is the official implementation of [Grokking ExPLAIND: Unifying Model, Data, and Training Attribution to Study Model Behavior](https://github.com/mainlp/path_kernels). To jump directly to the experiments, go to [`experiments/`](https://github.com/mainlp/explaind/tree/main/experiments).
 
 
 ## Requirements
