@@ -8,7 +8,7 @@
 
 ![Screenshot 2025-05-21 at 08 44 04](https://github.com/user-attachments/assets/077ef1a3-2e37-4e3a-8434-cf6673369122)
 
-This repository is the official implementation of [Grokking ExPLAIND: Unifying Model, Data, and Training Attribution to Study Model Behavior](https://github.com/mainlp/path_kernels). To jump directly to the experiments, go to [`experiments/`](https://github.com/mainlp/explaind/tree/main/experiments).
+This repository is the official implementation of [Grokking ExPLAIND: Unifying Model, Data, and Training Attribution to Study Model Behavior](https://github.com/mainlp/explaind). To jump directly to the experiments, go to [`experiments/`](https://github.com/mainlp/explaind/tree/main/experiments).
 
 
 ## Requirements
