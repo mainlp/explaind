@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "explaind"
-version = "0.0.1"
+version = "0.0.2"
 description = "A unified framework for attributing model components, data, and training dynamics to model behavior."
 readme = "README.md"
 license = {file = "LICENSE"}
