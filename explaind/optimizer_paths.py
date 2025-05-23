@@ -108,7 +108,7 @@ class OptimizerPath(optim.Optimizer):
             self.checkpoints = []
             return
         
-        self.checkpoints = torch.load(self.checkpoint_path)
+        self.checkpoints = torch.load(self.checkpoint_path, weights_only=False)
 
     def save_checkpoints(self):
         """

@@ -94,7 +94,7 @@ def train_epk_cifar(epk_history=True, checkpoint_path="results/", loader=None, s
         tuple of model, optimizer, and dataloader.
     """
     
-    os.makedirs(f'{checkpoint_path}{cifar_type}/checkpoints/epk/model_{model_id}', exist_ok=True)
+    # os.makedirs(f'{checkpoint_path}{cifar_type}/checkpoints/epk/model_{model_id}', exist_ok=True)
     os.makedirs(f'{checkpoint_path}{cifar_type}/checkpoints/standard/model_{model_id}', exist_ok=True)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
@@ -131,13 +131,13 @@ def train_epk_cifar(epk_history=True, checkpoint_path="results/", loader=None, s
     if epk_history:
 
         opt = SGDOptimizerPath(model, lr=lr, momentum=momentum, weight_decay=weight_decay,
-                            checkpoint_path=f'{checkpoint_path}{cifar_type}/checkpoints/epk/model_{model_id}/opt_{model_id}.pt',
+                            checkpoint_path=f'{checkpoint_path}/opt_{model_id}.pt',
                             device=device, 
                             overwrite=True)
         model = ModelPath(model=model, device=device, 
-                        checkpoint_path=f'{checkpoint_path}{cifar_type}/checkpoints/epk/model_{model_id}/model_{model_id}.pt',
+                        checkpoint_path=f'{checkpoint_path}/model_{model_id}.pt',
                         overwrite=True)
-        datapath = DataPath(loader, checkpoint_path=f'{checkpoint_path}{cifar_type}/checkpoints/epk/model_{model_id}/data_{model_id}.pt',
+        datapath = DataPath(loader, checkpoint_path=f'{checkpoint_path}/data_{model_id}.pt',
                            full_batch=False, overwrite=True)
 
     else:
@@ -250,12 +250,9 @@ def train_epk_cifar(epk_history=True, checkpoint_path="results/", loader=None, s
         "scheduler": "LambdaLR"
     }
 
-    if epk_history:
-        with open(f'{checkpoint_path}{cifar_type}/checkpoints/epk/model_{model_id}/config.json', 'w') as f:
-            json.dump(config, f, indent=4)
-    else:
-        with open(f'{checkpoint_path}{cifar_type}/checkpoints/standard/model_{model_id}/config.json', 'w') as f:
-            json.dump(config, f, indent=4)
+
+    with open(f'{checkpoint_path}/config.json', 'w') as f:
+        json.dump(config, f, indent=4)
 
     if epk_history:
         return model, opt, datapath
