@@ -8,14 +8,21 @@ from explaind.data_paths import DataPath
 import json
 import os
 from tqdm import tqdm
+import argparse
 
 # import plotly.express as px
 # import plotly.graph_objects as go
 
 
+parser = argparse.ArgumentParser(description='Validate EPK on modulo model')
+parser.add_argument('--path', type=str, default="results/modulo_train_epk_new/", help='Path to the experiment folder')
+
+
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-experiment_path = "results/modulo_train_epk_new/"
+
+
+experiment_path = parser.parse_args().path
 os.makedirs(experiment_path, exist_ok=True)
 
 model_checkpoint_path = experiment_path + "model_checkpoint.pt"

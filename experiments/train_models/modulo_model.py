@@ -14,6 +14,7 @@ import os
 
 import random
 import json
+import argparse
 
 
 # Set the random seed for reproducibility
@@ -484,15 +485,23 @@ def train_model(
     return model_parts, train_accuracy, val_accuracy
 
 if __name__ == '__main__':
-    checkpoint_path = 'results/modulo_val_results/'
-    n_samples = 4000
-    p = 113
-    new_data = True
+
+    parser = argparse.ArgumentParser(description='Train a modulo model.')
+    parser.add_argument('--n_samples', type=int, default=4000, help='Number of samples to train on')
+    parser.add_argument('--p', type=int, default=113, help='Modulo value')
+    parser.add_argument('--new_data', type=bool, default=True, help='Generate new data or use existing data')
+    parser.add_argument('--path', type=str, default='results/modulo_val_results/', help='Path to save checkpoints')
+
+    # checkpoint_path = 'results/modulo_val_results/'
+    checkpoint_path = parser.parse_args().checkpoint_path
+    n_samples = parser.parse_args().n_samples
+    p = parser.parse_args().p
+    new_data = parser.parse_args().new_data
 
     if not os.path.exists(checkpoint_path):
         os.makedirs(checkpoint_path)
 
-    if new_data:
+    if parser.parse_args().new_data:
         train_loader, val_loader, data = generate_data(n_samples, 2000, p=p, power=1, batch_size=None)
         # store data as .csv
         save_data(data, checkpoint_path + "dataset/")
@@ -506,7 +515,8 @@ if __name__ == '__main__':
         val_loader = torch.load(checkpoint_path + f"val_loader_N={n_samples}.pt")
 
 
-    model, tacc, vacc = train_model(train_loader, val_loader, device, log_path=checkpoint_path, 
+    model, tacc, vacc = train_model(train_loader, val_loader, device, 
+                                    log_path=checkpoint_path, 
                                     epochs=4000, lr=0.001, hidden_size=64, dim_mlp=512, 
                                     dropout=0.0, weight_decay=4.0,
                                     n_token=p+2, num_samples=n_samples, scale_weights=1.0, 

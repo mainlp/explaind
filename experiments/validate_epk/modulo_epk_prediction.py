@@ -8,11 +8,15 @@ from explaind.data_paths import DataPath
 import json
 import os
 from tqdm import tqdm
+import argparse
 
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-experiment_path = "results/modulo_val_results/"
+parser = argparse.ArgumentParser(description='Validate EPK on modulo model')
+parser.add_argument('--path', type=str, default="results/modulo_val_results/", help='Path to the experiment folder')
+
+experiment_path = parser.parse_args().path
 os.makedirs(experiment_path, exist_ok=True)
 model_checkpoint_path = experiment_path + "model_checkpoint.pt"
 optimizer_checkpoint_path = experiment_path + "optimizer_checkpoint.pt"

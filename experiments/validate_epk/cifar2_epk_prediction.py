@@ -18,10 +18,15 @@ import json
 import plotly.express as px
 import plotly.graph_objects as go
 
+import argparse
+
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-experiment_path = "results/cifar2_0.1/"
+parser = argparse.ArgumentParser(description='Validate EPK on CIFAR model')
+parser.add_argument('--path', type=str, default="results/cifar2/", help='Path to the experiment folder')
+
+experiment_path = parser.parse_args().path
 config_path = experiment_path + "config.json"
 model_checkpoint_path = experiment_path + "model_epk_0.pt"
 optimizer_checkpoint_path = experiment_path + "opt_epk_0.pt"
@@ -106,7 +111,7 @@ epk = ExactPathKernelModel(
     optimizer=optimizer,
     loss_fn=loss_fn,
     data_path=datapath,
-    integral_eps=0.1,
+    integral_eps=0.01,
     features_to_cpu=False,
     device=device,
     train_set_size=config["train_size"],

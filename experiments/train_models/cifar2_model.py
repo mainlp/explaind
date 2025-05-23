@@ -20,6 +20,8 @@ import warnings
 import time
 import random
 
+import argparse
+
 warnings.filterwarnings('ignore')
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -302,9 +304,14 @@ def evaluate(model, loader, datapath=None, model_id=0, device=device):
 
 if __name__ == '__main__':
 
+    parser = argparse.ArgumentParser(description='Train a model on CIFAR-10 or CIFAR-2.')
+
+    parser.add_argument("--path", type=str, default="results/", help="Path to store the model and config.")
+
     model, opt, datapath = train_epk_cifar(epk_history=True,
                                            store_other_checkpoints=False,
                                            device=device, 
+                                           checkpoint_path=parser.parse_args().path,
                                            cifar_type="cifar2",
                                            batch_size=512,
                                            epochs=12, 
