@@ -67,13 +67,13 @@ def apply_mask_to_loader(loader, mask_path):
     return filtered_loader
 
 
-def train_epk_cifar(epk_history=True, checkpoint_path="results/", loader=None, store_other_checkpoints=True,
+def train_epk_cifar(epk_history=True, checkpoint_path="results/cifar2/", loader=None, store_other_checkpoints=True,
                     mask_path=None,
                      seed=42, lr=0.1, epochs=24, momentum=0.9, batch_size=512, cifar_type="cifar10",
           weight_decay=5e-4, lr_peak_epoch=5, model_id=0, device='cuda', random_subset_alpha=-1):
     """
     Train a model on CIFAR-10 or CIFAR-2 using a setup similar to the TRAK paper. Automatically stores relevant
-    checkpoints and config at "{checkpoint_path}{cifar_type}/checkpoints/".
+    checkpoints and config at "{checkpoint_path}/checkpoints/".
 
     Args:
         epk_history (bool): If True, set up the training procedure such that it stores checkpoints to apply
@@ -94,8 +94,8 @@ def train_epk_cifar(epk_history=True, checkpoint_path="results/", loader=None, s
         tuple of model, optimizer, and dataloader.
     """
     
-    # os.makedirs(f'{checkpoint_path}{cifar_type}/checkpoints/epk/model_{model_id}', exist_ok=True)
-    os.makedirs(f'{checkpoint_path}{cifar_type}/checkpoints/standard/model_{model_id}', exist_ok=True)
+    # os.makedirs(f'{checkpoint_path}/checkpoints/epk/model_{model_id}', exist_ok=True)
+    os.makedirs(f'{checkpoint_path}/checkpoints/standard/model_{model_id}', exist_ok=True)
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     np.random.seed(seed)
@@ -112,7 +112,7 @@ def train_epk_cifar(epk_history=True, checkpoint_path="results/", loader=None, s
         loader, ds = get_dataloader(batch_size=batch_size, num_workers=8, split='train', shuffle=True, type=cifar_type)
 
         if random_subset_alpha > 0:
-            mask_path = f'{checkpoint_path}{cifar_type}/checkpoints/standard/mask_{model_id}.npy'
+            mask_path = f'{checkpoint_path}/checkpoints/standard/mask_{model_id}.npy'
             loader = sample_subset_and_store_mask(loader, mask_path, random_subset_alpha=random_subset_alpha)
             print(f"Random subset of {random_subset_alpha*100:.1f}% of the dataset sampled and stored at {mask_path}.")
             print(f"Subset size: {len(loader.dataset)} samples.")
@@ -201,7 +201,7 @@ def train_epk_cifar(epk_history=True, checkpoint_path="results/", loader=None, s
         print(f"Validation Accuracy: {val_acc:.4f}")
 
         if store_other_checkpoints:
-            torch.save(model.state_dict(), f'{checkpoint_path}{cifar_type}/checkpoints/standard/model_{model_id}/sd_{model_id}_epoch_{ep}.pt')
+            torch.save(model.state_dict(), f'{checkpoint_path}/checkpoints/standard/model_{model_id}/sd_{model_id}_epoch_{ep}.pt')
 
     # Save the model and optimizer checkpoints
     if epk_history:
@@ -209,7 +209,7 @@ def train_epk_cifar(epk_history=True, checkpoint_path="results/", loader=None, s
         opt.save_checkpoints()
         datapath.save_checkpoints()
     if store_other_checkpoints:
-        torch.save(model.state_dict(), f'{checkpoint_path}{cifar_type}/checkpoints/standard/model_{model_id}/sd_{model_id}_final.pt')
+        torch.save(model.state_dict(), f'{checkpoint_path}/checkpoints/standard/model_{model_id}/sd_{model_id}_final.pt')
 
     if epk_history:
         train_acc = evaluate(model, loader, datapath, model_id=model_id, device=device)
@@ -244,9 +244,9 @@ def train_epk_cifar(epk_history=True, checkpoint_path="results/", loader=None, s
         "model": "ResNet9",
         "loss_fn": "RegularizedCrossEntropyLoss",
         "mask_path": mask_path if random_subset_alpha > 0 else None,
-        "datapath": f'{checkpoint_path}{cifar_type}/checkpoints/epk/model_{model_id}/data_{model_id}.pt' if epk_history else None,
-        "model_path": f'{checkpoint_path}{cifar_type}/checkpoints/epk/model_{model_id}/model_{model_id}.pt' if epk_history else None,
-        "opt_path": f'{checkpoint_path}{cifar_type}/checkpoints/epk/model_{model_id}/opt_{model_id}.pt' if epk_history else None,
+        "datapath": f'{checkpoint_path}/data_{model_id}.pt' if epk_history else None,
+        "model_path": f'{checkpoint_path}/model_{model_id}.pt' if epk_history else None,
+        "opt_path": f'{checkpoint_path}/opt_{model_id}.pt' if epk_history else None,
         "scheduler": "LambdaLR"
     }
 
@@ -270,7 +270,7 @@ def train_epk_cifar(epk_history=True, checkpoint_path="results/", loader=None, s
     val_preds = np.concatenate(val_preds)
     print(f"Val preds shape: {val_preds.shape}")
 
-    np.save(f'{checkpoint_path}{cifar_type}/checkpoints/standard/model_{model_id}/val_preds.npy', val_preds)
+    np.save(f'{checkpoint_path}/checkpoints/standard/model_{model_id}/val_preds.npy', val_preds)
 
     return model, opt, loader
 
@@ -303,7 +303,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Train a model on CIFAR-10 or CIFAR-2.')
 
-    parser.add_argument("--path", type=str, default="results/", help="Path to store the model and config.")
+    parser.add_argument("--path", type=str, default="results/cifar2/", help="Path to store the model and config.")
 
     model, opt, datapath = train_epk_cifar(epk_history=True,
                                            store_other_checkpoints=False,
