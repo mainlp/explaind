@@ -2,7 +2,7 @@
 [![PyPI - Python](https://img.shields.io/badge/python-v3.12+-blue.svg)](https://pypi.org/project/explaind/0.0.2/)
 [![PyPI - License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/mainlp/explaind/blob/main/LICENSE)
 [![PyPI - PyPi](https://img.shields.io/pypi/v/explaind)](https://pypi.org/project/explaind/0.0.2/)
-[![arXiv](https://img.shields.io/badge/TODO-<COLOR>.svg)](https://github.com/mainlp/explaind)
+[![arXiv](https://img.shields.io/badge/arXiv-2505.20076-<COLOR>.svg)]([https://github.com/mainlp/explaind](https://arxiv.org/abs/2505.20076))
 
 # ExPLAIND: Unifying Model, Data, and Training Attribution to Study Model Behavior
 
@@ -124,6 +124,14 @@ We publish this repository under MIT license and welcome anybody who wants to co
 If you want to use our code for your own projects, please consider citing our work:
 
 ```
-TODO
+@misc{eichin2025grokkingexplaindunifyingmodel,
+      title={Grokking ExPLAIND: Unifying Model, Data, and Training Attribution to Study Model Behavior}, 
+      author={Florian Eichin and Yupei Du and Philipp Mondorf and Barbara Plank and Michael A. Hedderich},
+      year={2025},
+      eprint={2505.20076},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2505.20076}, 
+}
 ```
 
