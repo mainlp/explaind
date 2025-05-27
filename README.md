@@ -2,7 +2,7 @@
 [![PyPI - Python](https://img.shields.io/badge/python-v3.12+-blue.svg)](https://pypi.org/project/explaind/0.0.2/)
 [![PyPI - License](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/mainlp/explaind/blob/main/LICENSE)
 [![PyPI - PyPi](https://img.shields.io/pypi/v/explaind)](https://pypi.org/project/explaind/0.0.2/)
-[![arXiv](https://img.shields.io/badge/arXiv-2505.20076-<COLOR>.svg)]([https://github.com/mainlp/explaind](https://arxiv.org/abs/2505.20076))
+[![arXiv](https://img.shields.io/badge/arXiv-2505.20076-<COLOR>.svg)](https://arxiv.org/abs/2505.20076)
 
 # ExPLAIND: Unifying Model, Data, and Training Attribution to Study Model Behavior
 
