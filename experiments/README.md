@@ -1,53 +1,99 @@
-# Experiments and Plots
+# Experiments and plots
 
+> If manual installation produces a `ModuleNotFoundError`, run `export PYTHONPATH=.` from the repository root. Most scripts also accept a `--path` argument to change the default `results/` output directory.
 
-> Note: If you decided for a manual installation and are receiving a `module not found` error, try `export PYTHONPATH=.` in the in the parent directory of this repository. This will tell python to look for the `explaind` package there. The scripts defined below also have a `--path` option in case you don't want everything to be stored in `results/`.
+This directory contains the small-scale experiments from the ExPLAIND paper and the additional camera-ready ablations. A typical workflow is:
 
+1. train a model while storing the required model, optimizer, and data checkpoints;
+2. compute EPK predictions and ExPLAIND influence scores from those checkpoints;
+3. run the ablation or plotting script for the experiment section you want to reproduce.
 
-In this directory, you can find the code implementing the experiments of the paper. Generally, you want to apply ExPLAIND by first training a model with checkpoints needed to compute the EPK. Second, you would run a prediction as defined by the kernel reformulation presented in the paper. Third, as presented in the paper, you can plot run statistics and run additional experiments or ablations.
+## 1. Train models with history
 
-If you're trying to run ExPLAIND on your own model, consider giving the respective scripts a look to understand the (minor) changes you have to make to your training script and how to get EPK predictions.
+Run these scripts from the repository root:
 
-## 1. Model training with history
-
-Since all of our experiments rely on either the trained CNN or modulo model, you first need to train them storing the checkpoints needed to run ExPLAIND subsequently. To do this, run:
-
-```python
-python experiments/train_models/cifar2_model.py
+```bash
+python experiments/train_models/modulo_model.py --path results/modulo_val_results/
+python experiments/train_models/cifar2_model.py --path results/cifar2/
+python experiments/train_models/mnist10_model.py --path results/mnist10/
 ```
 
-for the CIFAR2 model or
+The modulo and CIFAR-2 models are the main inputs for the EPK validation, component attribution, pruning, and pipeline experiments. The MNIST model supports the sensitivity and LDS-style data-attribution experiments.
 
-```python
-python experiments/train_models/modulo_model.py
+## 2. Compute EPK predictions and ExPLAIND scores
+
+```bash
+python experiments/validate_epk/modulo_epk_prediction.py --path results/modulo_val_results/
+python experiments/validate_epk/cifar2_epk_prediction.py --path results/cifar2/
+python experiments/validate_epk/modulo_epk_train_set.py --path results/modulo_train_epk_new/
 ```
 
-for the modulo addition model.
+These scripts combine prediction of the EPK-reformulated model with influence-score computation to avoid recomputing the same feature maps. The output includes predictions, kernel matrices, and accumulated score statistics used by the plotting scripts.
 
-## 2. Compute predictions of the EPK reformulation (and thus the ExPLAIND influence scores)
+## 3. Additional experiments and ablations
 
-We have decided to combine the computation of influence scores as well as model predictions into a single EPK reformulation prediction procedure to avoid redundant computations of the same steps. This of course is inefficient for the accumulated parts of the ExPLAIND explanations. In future revisions of this code, we want to implement methods that avoid materializing unnecessary parts of the kernel to speed up computations and reduce memory requirements.
+### Component attribution
 
-To compute the predictions, you can run the following scripts:
-
-
-```python
-python experiments/validate_epk/cifar2_epk_prediction.py
+```bash
+python experiments/component_attribution/component_attribution.py
+python experiments/component_attribution/comp_att_history.py
+python experiments/component_attribution/comp_att_history_train.py
+python experiments/component_attribution/comp_train_to_val_hist.py
 ```
 
-for the CIFAR2 model and for the modulo additon model
+These scripts aggregate ExPLAIND scores by model component and compare score histories across train and validation behavior.
 
-```python
-python experiments/validate_epk/modulo_epk_prediction.py
+### CIFAR-2 pruning
+
+```bash
+python experiments/cifar_pruning/model_pruning.py
+python experiments/cifar_pruning/plot_pruning_results.py
 ```
 
-## 3. Run additional experiments and plots
+The pruning experiment removes or perturbs weights based on attribution statistics and plots the effect on model behavior.
 
-To run the additional experiments on model pruning or Grokking from the paper, run the respective scripts in the according subfolders. To generate the corresponding plots, there is usually a plot script right where the experiment is located. Namely, this directory contains scripts for...
+### Representation pipeline swapping and retraining
 
-- pruning the model weights of the CUFAR2 model in `cifar_pruning/`
-- generating the model component attribution explanations in `component_attribution/`
-- swapping in the final aligned outer layers around earlier versions of the intermediate representation pipeline in `swap_aligned/`
-- training a random model initialized with different versions of the intermediate representation pipeline in `retrain_pipeline/`
+```bash
+python experiments/swap_aligned/swap_pipelines.py
+python experiments/retrain_pipeline/retrain_with_pipeline.py
+python experiments/retrain_pipeline/plot_pipeline_train.py
+```
 
-Additional scripts for plotting training or EPK prediction statistics can be found `experiments/plots/`.
+These scripts study how intermediate representations change by swapping aligned outer layers and retraining random models initialized from different representation-pipeline states.
+
+### Sensitivity and MNIST data attribution
+
+```bash
+python experiments/sensitivity/mnist_sensitivity.py
+python experiments/sensitivity/plot.py
+bash experiments/mnist_data_attribution/train_and_attribute.sh
+python experiments/mnist_data_attribution/eval_lds.py
+python experiments/mnist_data_attribution/plot.py
+```
+
+The sensitivity experiment evaluates score stability under perturbations. The MNIST data-attribution scripts compare ExPLAIND-style scores with LDS-style baselines.
+
+## 4. Plot regeneration
+
+General plotting utilities live in [`experiments/plots/`](plots/):
+
+```bash
+python experiments/plots/plot_kernel_matrices.py
+python experiments/plots/plot_epk_matrices_mod.py
+python experiments/plots/plot_mod_epk_stats.py
+python experiments/plots/plot_mod_training_process.py
+python experiments/plots/plot_kernel_reg_balance.py
+python experiments/plots/plot_cosines.py
+```
+
+Most plotting scripts expect artifacts generated by the training and validation steps under `results/`. If a plot script fails with a missing file, rerun the corresponding training or validation script and check the hard-coded or CLI-configured result path.
+
+## Development checks
+
+```bash
+python -m unittest discover tests
+python -m ruff check explaind experiments scaled_experiments tests
+```
+
+Ruff is configured in `pyproject.toml`; install it in your development environment if `python -m ruff` is unavailable.

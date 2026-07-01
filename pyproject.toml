@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "explaind"
-version = "0.0.2"
+version = "0.1.0"
 description = "A unified framework for attributing model components, data, and training dynamics to model behavior."
 readme = "README.md"
 license = {file = "LICENSE"}
@@ -47,9 +47,20 @@ dependencies = [
     "pandas==2.2.3",
 ]
 
+[project.optional-dependencies]
+scaled = [
+    "accelerate==1.14.0",
+    "transformers==5.12.1",
+    "datasets==5.0.0",
+    "huggingface_hub==1.21.0",
+    "safetensors==0.8.0",
+    "tensordict==0.13.0",
+    "nnsight==0.7.0",
+]
+
 [tool.setuptools.packages.find]
 include = ["explaind*"]
-exclude = ["tests", "experiments"]
+exclude = ["tests", "experiments", "scaled_experiments"]
 
 [tool.ruff]
 line-length = 120
