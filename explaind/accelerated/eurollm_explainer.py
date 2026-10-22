@@ -2,6 +2,7 @@ from explaind.accelerated.llama_explainer import LlamaExplainer
 from typing import Optional
 import torch
 from transformers import AutoConfig, AutoTokenizer
+from nnsight import LanguageModel
 from transformers import AutoModelForCausalLM
 from huggingface_hub import HfApi
 from accelerate import Accelerator
@@ -23,7 +24,17 @@ LANGS = [
     # "ind_Latn",
 ]
 
-NEEDED_FWHQ = ["rus_Cyrl", "pol_Latn", "nld_Latn", "arb_Arab", "tur_Latn", "swe_Latn", "ces_Latn", "ell_Grek"]
+NEEDED_FWHQ = [
+    "rus_Cyrl",
+    "pol_Latn",
+    "nld_Latn",
+    "arb_Arab",
+    "tur_Latn",
+    "swe_Latn",
+    "ces_Latn",
+    "ell_Grek",
+    ""
+]
 
 NEEDED_HPLT = [
     "kor_Hang",
@@ -52,6 +63,7 @@ LANG2ID = {lang: i for i, lang in ID2LANG.items()}
 
 
 ###################### UTILS ####################################
+# largely copied from our evaluation code, see: TODO
 ELLM_PATH = "/nfs/gdata/fkoerner/conversion/converted/eurollm/1b"
 ELLM_P2_OFFSET = 287000
 ELLM_PHASE_MAPPING = {
@@ -62,7 +74,6 @@ MODEL_PATHS = glob.glob(f"{ELLM_PATH}/*/*")
 
 
 def get_step_number(path):
-    """Extract a numeric or phase-qualified training step identifier from a checkpoint path."""
     if re.search(r"step(\d+)", path):
         return int(re.search(r"step(\d+)", path).group(1))
     elif re.search(r"iter_(\d+)", path):
@@ -75,23 +86,19 @@ def get_step_number(path):
     else:
         return int("inf")
 
-
 def sort_key(s):
-    """Sort EuroLLM phase identifiers according to their global training order."""
     match = re.match(r"phase_(\d+)_(\d+)", s)
     if match:
         phase, number = match.groups()
         phase = int(phase)
         number = int(number)
         if phase == 2:
-            number += ELLM_P2_OFFSET  # offset phase 2
+            number += ELLM_P2_OFFSET # offset phase 2
         return number
     else:
         return 0
 
-
 def get_all_refs(model_name: str):
-    """Return non-long-context branch or tag names for a Hugging Face model repository."""
     refs = HfApi().list_repo_refs(model_name, repo_type="model")
     ref_names = []
     for branch in refs.branches:
@@ -106,13 +113,7 @@ def get_all_refs(model_name: str):
             ref_names.append(tag.name)
     return ref_names
 
-
-def build_ellm_model(
-    conv_path,
-    ckpt_path,
-    model_name="utter-project/EuroLLM-1.7B",
-):
-    """Load a converted EuroLLM checkpoint and reconstruct optimizer/scheduler state."""
+def build_ellm_model(conv_path, ckpt_path, model_name="utter-project/EuroLLM-1.7B",):
 
     # step_num = get_step_number(model_name)
     config = AutoConfig.from_pretrained(model_name)
@@ -121,20 +122,14 @@ def build_ellm_model(
     if "second_phase" in conv_path:
         step_num += ELLM_P2_OFFSET
 
-    model = AutoModelForCausalLM.from_pretrained(
-        conv_path,
-    )
+    model = AutoModelForCausalLM.from_pretrained(conv_path,)
     ## load optimizer state
     # we have two param groups that we have to recreate
     param_groups = [{"params": []}, {"params": []}]
 
     for np in model.named_parameters():
         name, param = np
-        if (
-            name.endswith("input_layernorm.weight")
-            or name.endswith("post_attention_layernorm.weight")
-            or name == "model.norm.weight"
-        ):
+        if name.endswith("input_layernorm.weight") or name.endswith("post_attention_layernorm.weight") or name == "model.norm.weight":
             param_groups[1]["params"].append(np)
         else:
             param_groups[0]["params"].append(np)
@@ -145,18 +140,16 @@ def build_ellm_model(
 
     # for some reason megatron stored the weights of attention and mlp layers combined into single tensors
     # we need to revert this combination to load the optimizer state correctly
-    torch_state = revert_megatron_param_combinations(
-        state["optimizer"]["optimizer"]["state"], check_against=optimizer.state_dict()["param_groups"]
-    )
+    torch_state = revert_megatron_param_combinations(state["optimizer"]["optimizer"]["state"], check_against=optimizer.state_dict()["param_groups"])
     ckpt_param_groups = state["optimizer"]["optimizer"]["param_groups"]
 
+    
     # we use a dummy scheduler as we cannot exactly recreate the original one here
-    scheduler_params = state["opt_param_scheduler"]
-
+    scheduler_params = state['opt_param_scheduler']
     def scheduler_rule(step):
-        max_lr = scheduler_params["max_lr"]
-        min_lr = scheduler_params["min_lr"]
-        warmup = scheduler_params["lr_warmup_steps"] / 3072  # account for Megatron step scaling
+        max_lr = scheduler_params['max_lr']
+        min_lr = scheduler_params['min_lr']
+        warmup = scheduler_params['lr_warmup_steps'] / 3072  # batch size (account for some megatron fuckery with the steps)
         if step < warmup:
             return step / warmup
 
@@ -181,7 +174,7 @@ def build_ellm_model(
         torch_param_groups[i]["eps"] = ckpt_param_groups[i]["eps"]
         torch_param_groups[i]["weight_decay"] = ckpt_param_groups[i]["weight_decay"]
         torch_param_groups[i]["step"] = step_num
-
+        
     for i in range(len(torch_state)):
         torch_state[i]["step"] = step_num
 
@@ -198,46 +191,35 @@ def build_ellm_model(
 
     return model, tokenizer, optimizer, scheduler, config
 
-
 def revert_megatron_param_combinations(state, check_against):
-    """Split combined Megatron optimizer tensors into Hugging Face parameter groups."""
+    # this is a hacky solution for the model at hand and would not generalize
     group0 = []
     group1 = []
     for k, v in state.items():
         if v["exp_avg"].shape[0] == 11264:
             # mlp combined
-            group0.append(
-                {
-                    "exp_avg": v["exp_avg"][:5632, :],
-                    "exp_avg_sq": v["exp_avg_sq"][:5632, :],
-                }
-            )
-            group0.append(
-                {
-                    "exp_avg": v["exp_avg"][5632:, :],
-                    "exp_avg_sq": v["exp_avg_sq"][5632:, :],
-                }
-            )
+            group0.append({
+                "exp_avg": v["exp_avg"][:5632, :],
+                "exp_avg_sq": v["exp_avg_sq"][:5632, :],
+            })
+            group0.append({
+                "exp_avg": v["exp_avg"][5632:, :],
+                "exp_avg_sq": v["exp_avg_sq"][5632:, :],
+            })
         elif v["exp_avg"].shape[0] == 4096 and v["exp_avg"].shape[1] == 2048:
             # attention combined
-            group0.append(
-                {
-                    "exp_avg": v["exp_avg"][:2048, :],
-                    "exp_avg_sq": v["exp_avg_sq"][:2048, :],
-                }
-            )
-            group0.append(
-                {
-                    "exp_avg": v["exp_avg"][2048:3072, :],
-                    "exp_avg_sq": v["exp_avg_sq"][2048:3072, :],
-                }
-            )
-            group0.append(
-                {
-                    "exp_avg": v["exp_avg"][3072:, :],
-                    "exp_avg_sq": v["exp_avg_sq"][3072:, :],
-                }
-            )
+            group0.append({
+                "exp_avg": v["exp_avg"][:2048, :],
+                "exp_avg_sq": v["exp_avg_sq"][:2048, :],
+            })
+            group0.append({
+                "exp_avg": v["exp_avg"][2048:3072, :],
+                "exp_avg_sq": v["exp_avg_sq"][2048:3072, :],
+            })
+            group0.append({
+                "exp_avg": v["exp_avg"][3072:, :],
+                "exp_avg_sq": v["exp_avg_sq"][3072:, :],
+            })
         else:
             if v["exp_avg"].shape[0] == 2048 and len(v["exp_avg"].shape) == 1:
                 group1.append(v)
@@ -249,30 +231,28 @@ def revert_megatron_param_combinations(state, check_against):
     new_state.update(dict([(i + len(group0), group1[i]) for i in range(len(group1))]))
 
     for i in range(len(group0)):
-        print(f"Checking param {i} shape: {group0[i]['exp_avg'].shape} - {check_against[0]['param_names'][i]}")
-
+        print(f"Checking param {i} shape: {group0[i]['exp_avg'].shape} - {check_against[0]["param_names"][i]}")
+        
     for i in range(len(group1)):
-        print(f"Checking param {i} shape: {group1[i]['exp_avg'].shape} - {check_against[1]['param_names'][i]}")
-
+        print(f"Checking param {i} shape: {group1[i]['exp_avg'].shape} - {check_against[1]["param_names"][i]}")
+        
     return new_state
 
 
+
+    
 ###################### END UTILS ####################################
 
 
 class EuroLLMExplainer(LlamaExplainer):
-    """LLaMA StepExplainer variant for converted EuroLLM/Megatron checkpoints."""
+    def __init__(self, 
+                 *args,
+                 conv_checkpoint_path: str,
+                 trust_remote_code: bool = False,
+                 revision: Optional[str] = None,
+                 **kwargs):
 
-    def __init__(
-        self,
-        *args,
-        conv_checkpoint_path: str,
-        trust_remote_code: bool = False,
-        revision: Optional[str] = None,
-        **kwargs,
-    ):
-
-        # self.checkpoint_path = model_checkpoint
+        #self.checkpoint_path = model_checkpoint
         self.trust_remote_code = trust_remote_code
         self.conv_checkpoint_path = conv_checkpoint_path
         self.revision = revision
@@ -283,6 +263,7 @@ class EuroLLMExplainer(LlamaExplainer):
 
         super().__init__(*args, **kwargs)
 
+    
     def load_checkpoint(self):
         """
         Load checkpoints.
@@ -295,8 +276,7 @@ class EuroLLMExplainer(LlamaExplainer):
         )
 
         self.model, self.optimizer, self.scheduler, self.dataloader = self.accelerator.prepare(
-            self.model, self.optimizer, self.scheduler, self.dataloader
-        )
+            self.model, self.optimizer, self.scheduler, self.dataloader)
 
         # will be set in compute_step_model
         self.clip_norm = 0.0
@@ -306,15 +286,16 @@ class EuroLLMExplainer(LlamaExplainer):
         self.load_train_batch()
         print(f"Loaded batch from {self.checkpoint_path} and {self.conv_checkpoint_path}")
 
-        self.lr = [self.optimizer.param_groups[i]["lr"] for i in range(len(self.optimizer.param_groups))]
+        self.lr = [self.optimizer.param_groups[i]['lr'] for i in range(len(self.optimizer.param_groups))]
 
-        self.step_id = self.optimizer.param_groups[0]["step"]
+        rx = re.compile(r"iter-(\d+)")
+        self.step_id = self.optimizer.param_groups[0]['step']
 
         # mainly here for debugging purposes:
-        self.train_grad_scaling = 1.0  # / self.gradient_accumulation_steps  # self.gradient_accumulation_steps
-        self.test_grad_scaling = 1.0  # self.gradient_accumulation_steps
+        self.train_grad_scaling = 1.0 # / self.gradient_accumulation_steps  # self.gradient_accumulation_steps
+        self.test_grad_scaling = 1.0 # self.gradient_accumulation_steps
         self.test_loss_scaling = 1.0 / self.gradient_accumulation_steps
-
+    
     def load_train_batch(self):
         """
         Load training batch from recovered batches path.
@@ -332,7 +313,7 @@ class EuroLLMExplainer(LlamaExplainer):
             for line in f:
                 dict_sample = json.loads(line.strip())
                 batch_samples.append(dict_sample)
-
+        
         self.train_batcher = []
         current_batch = []
         current_len = 0
@@ -345,7 +326,7 @@ class EuroLLMExplainer(LlamaExplainer):
                 max_length=self.max_batch_len,
             )
             batch["language_ids"] = torch.tensor(LANG2ID[sample.get("lang_code", "unk")])
-            current_len += len(batch["input_ids"])
+            current_len += len(batch['input_ids'])
 
             if current_len >= self.max_batch_len:
                 # collate
@@ -353,7 +334,7 @@ class EuroLLMExplainer(LlamaExplainer):
                 self.train_batcher.append(collated_batch)
                 current_len = 0
                 current_batch = []
-
+            
             current_batch.append(batch)
         # also add final batch
         collated_batch = self._collate_packing(current_batch)
@@ -361,4 +342,7 @@ class EuroLLMExplainer(LlamaExplainer):
         self.train_batcher.append(collated_batch)
         self.train_instances = {f"batch_{i}": batch for i, batch in enumerate(self.train_batcher)}
 
+        # self.train_batch = [self.train_batcher]  # this is legacy multi rank training stuff, perhaps should be fixed at some point
+        # do additional postprocessing that we can re-use from the llama explainer again
         self.postprocess_train_batch()
+        

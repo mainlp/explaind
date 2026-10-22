@@ -137,18 +137,7 @@ def main():
         score_path = os.path.join(args.score_dir, checkpoint_name + "_scores")
 
         # take one from other model now (replace with our own later)
-        if "second_phase" in checkpoint_name:
-            recovered_batch_path = (
-                "/mounts/Users/cisintern/feichin/projects/explaind-1/"
-                "results/lang_batches/eurollm_phase2_annealed_train_batch.jsonl"
-            )
-            # only do first phase for now
-            continue
-        else:
-            recovered_batch_path = (
-                "/mounts/Users/cisintern/feichin/projects/explaind-1/"
-                "results/lang_batches/eurollm_phase1_train_batch.jsonl"
-            )
+        recovered_batch_path = "results/lang_batches/eurollm_phase1_train_batch.jsonl"
 
         if is_computed(score_path):
             print(f"Scores already computed for checkpoint: {checkpoint_path}, skipping.")

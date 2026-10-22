@@ -19,22 +19,19 @@ class ReplicatedModel(nn.Module):
     which are in turn kept on the same device in the automated device mapping we use
     with accelerate.
     """
-
-    def __init__(
-        self,
-        name,
-        model0,
-        model1,
-        opt_state,
-        gradient_scaling,
-        current_step,
-        train_grad_scaling=1.0,
-        test_grad_scaling=1.0,
-        loss_grad=None,
-        num_steps=10,
-        device="cpu",
-        debug=False,
-    ):
+    def __init__(self, 
+                 name, 
+                 model0, 
+                 model1,
+                 opt_state,
+                 gradient_scaling,
+                 current_step,
+                 train_grad_scaling=1.0,
+                 test_grad_scaling=1.0,
+                 loss_grad=None,
+                 num_steps=10,
+                 device='cpu',
+                 debug=False):
         super().__init__()
         self.model0 = model0
         self.interpolated_model = deepcopy(model0)
@@ -57,39 +54,27 @@ class ReplicatedModel(nn.Module):
         self.overall = 0
 
         # map opt_state to the parameters of the layer
-        opt_state = {pname.lstrip(r"\."): opt_state[pname] for pname in opt_state.keys()}
+        opt_state = {
+            pname.lstrip(r"\."): opt_state[pname] 
+            for pname in opt_state.keys()
+        }
         if type(self.gradient_scaling) is not TensorDict:
             if type(self.gradient_scaling) is dict:
                 self.gradient_scaling = TensorDict(self.gradient_scaling).to(self.device)
             else:
-                self.gradient_scaling = TensorDict({pname: gradient_scaling for pname in opt_state.keys()}).to(
-                    self.device
-                )
+                self.gradient_scaling = TensorDict({pname: gradient_scaling for pname in opt_state.keys()}).to(self.device)
 
         self.learning_rate = TensorDict({pname: opt_state[pname]["lr"] for pname in opt_state.keys()}).to(self.device)
-        self.weight_decay = TensorDict({pname: opt_state[pname]["weight_decay"] for pname in opt_state.keys()}).to(
-            self.device
-        )
+        self.weight_decay = TensorDict({pname: opt_state[pname]["weight_decay"] for pname in opt_state.keys()}).to(self.device)
         self.first_moment = TensorDict({pname: opt_state[pname]["exp_avg"] for pname in opt_state.keys()})
+        # self.first_moment_new = {pname: opt_state[pname]["exp_avg_new"] for pname in opt_state.keys()}  # we will not need this later
+        # self.second_moment_old = {pname: opt_state[pname]["exp_avg_sq_old"] for pname in opt_state.keys()}  # we will not need this later
         self.second_moment = TensorDict({pname: opt_state[pname]["exp_avg_sq"] for pname in opt_state.keys()})
         self.beta1 = TensorDict({pname: opt_state[pname]["betas"][0] for pname in opt_state.keys()}).to(self.device)
         self.beta2 = TensorDict({pname: opt_state[pname]["betas"][1] for pname in opt_state.keys()}).to(self.device)
-
-        # set correct learning rate according to AdamW param update rule (see ExPLAIND paper, eq 2 for details)
-        # self.alpha_s = TensorDict({pname : self.learning_rate[pname] * \
-        #                  (1 - self.betas[pname][0] ** self.current_step)
-        #                 for pname in opt_state.keys()})
-
-        # init with zeroes for each parameter in the layer
-        # self.train_gradients = {param[0]: torch.zeros_like(param[1].data)
-        #                         for param in self.model0.named_parameters() if param[1].requires_grad}
-        self.test_gradients = TensorDict(
-            {
-                param[0]: torch.zeros_like(param[1].data)
-                for param in self.model1.named_parameters()
-                if param[1].requires_grad
-            }
-        )
+     
+        self.test_gradients = TensorDict({param[0]: torch.zeros_like(param[1].data) 
+                               for param in self.model1.named_parameters() if param[1].requires_grad})
 
         # Number of steps for interpolation
         self.num_steps = num_steps
@@ -121,9 +106,9 @@ class ReplicatedModel(nn.Module):
         else:
             print(self.current_forward_alpha, alpha)
             raise ValueError("Alpha must be between 0 and 1.")
-
+            
         return out
-
+        
     # backward
     def backward(self, grad_output):
         if self.current_forward_alpha == 0:
@@ -132,26 +117,19 @@ class ReplicatedModel(nn.Module):
             return self.model1.backward(grad_output)
         else:
             return self.interpolated_model.backward(grad_output)
-
+        
     def update_interpolated(self, alpha):
         """
         Update the interpolated layer based on the feature maps of the two layers.
         The feature maps are used to compute the interpolation.
         """
         # Update the interpolated layer based on the feature maps
-        for param0, param1, param_interpolated in zip(
-            self.model0.parameters(), self.model1.parameters(), self.interpolated_model.parameters()
-        ):
+        for param0, param1, param_interpolated in zip(self.model0.parameters(), 
+                                                      self.model1.parameters(), 
+                                                      self.interpolated_model.parameters()):
             if param0.requires_grad:
                 # Linear interpolation of parameters
                 param_interpolated.data = (1 - alpha) * param0.data + alpha * param1.data
-
-    def log_train_gradient(self):
-        """
-        Log the training gradient for the layer for score computations later. This
-        takes the gradients of model0 and stores them in the layer's train_gradients attribute.
-        """
-        # Implement logging logic here.
 
     def update_test_gradient_integral(self):
         """
@@ -166,14 +144,14 @@ class ReplicatedModel(nn.Module):
 
         # extract the test gradients from the model parameters and add to the integral
         # self.test_gradients = {
-        #     i: param.grad * width + self.test_gradients[i]
+        #     i: param.grad * width + self.test_gradients[i] 
         #     for i, param in self.interpolated_model.named_parameters() if param.requires_grad
         # }
-        self.test_gradients += self.get_grads(self.interpolated_model.named_parameters()) * width
+        self.test_gradients += (self.get_grads(self.interpolated_model.named_parameters()) * width)
 
         self.completed_integral_steps += 1
         # midppoint rule (simple, but effective)
-        self.current_forward_alpha = (0.5 + self.completed_integral_steps) / self.num_steps
+        self.current_forward_alpha = (0.5 + self.completed_integral_steps) / self.num_steps 
 
         # this updates the interpolation of the parameters to the next integral step
         self.update_interpolated(self.current_forward_alpha)
@@ -193,102 +171,56 @@ class ReplicatedModel(nn.Module):
         # overwrite train_grads to save memory
         assert self.second_moment is not None, "Second moment must be computed before computing influence scores."
 
-        # print(self.name)
-        # for s in self.train_gradients.keys():
-        #     print("param", s)
-        #     print("train grad", self.train_gradients[s].shape, self.train_gradients[s].sum())
-        #     print("test grad", self.test_gradients[s].shape, self.test_gradients[s].sum())
-        #     sq = (self.train_gradients[s] ** 2)
-        #     print("train_grad_sq", sq.shape, sq.sum())
-        #     sms =  self.betas[s][1] * self.second_moment[s]
-        #     print("second moment", sms.shape, sms.sum())
-        #     sm = (torch.sqrt(sms + (1 - self.betas[s][1]) * sq + 1e-8))
-        #     print("scaled momentum term", sm.shape, sm.sum())
-        #     print("alpha_s", self.alpha_s[s])
-        #     score = (-self.train_gradients[s] * self.test_gradients[s] * self.alpha_s[s] / sm)
-        #     print("influence score", score.shape, score.sum())
-
-        # -1 times -1 since loss term is -1 (todo: implement to change for loss vs outputs)
-
-        # train feature map
-        # self.scores = {
-        #         i: (param * self.gradient_scaling * (1 - self.betas[i][0])) * \
-        #             self.learning_rate[i] / (1 - self.betas[i][0] ** self.current_step) / \
-        #                ((self.second_moment[i].sqrt() / (1 - (self.betas[i][1] ** self.current_step))**0.5) + 1e-8)
-        #         for i, param in self.train_gradients.items()
-        #     }
-
-        # train feature map: multiplication with correct learning rate
-        # self.scores = {
-        #         i: (param.grad * self.gradient_scaling * (1 - self.betas[i][0])) * \
-        #             self.learning_rate[i] / (1 - self.betas[i][0] ** self.current_step)
-        #         for i, param in self.model0.named_parameters() if param.requires_grad
-        #     }
         self.scores = self.get_grads(self.model0.named_parameters()) * self.train_grad_scaling
         self.scores *= self.gradient_scaling * (1 - self.beta1) * self.learning_rate
-        self.scores /= 1 - self.beta1**self.current_step
-
-        # train feature map: division by second moment term
-        # self.scores = {i: score / ((self.second_moment[i].sqrt() / \
-        #                             (1 - (self.betas[i][1] ** self.current_step))**0.5) + 1e-8)
-        #                 for i, score in self.scores.items()}
-        self.scores /= self.second_moment.sqrt() / ((1 - (self.beta2**self.current_step)) ** 0.5) + 1e-8
+        self.scores /= (1 - self.beta1 ** self.current_step)
+        self.scores /= (self.second_moment.sqrt() / ((1 - (self.beta2 ** self.current_step))**0.5) + 1e-8)
 
         # dot product of feature maps
-        # self.scores = {i: -score * self.test_gradients[i] for i, score in self.scores.items()}
         self.scores *= -1
         self.scores *= self.test_gradients * self.test_grad_scaling
 
-        # set scores of lm_head to 0 if we have tied weights to avoid double counting
-        # self.scores["lm.lm_head.weight"] = torch.zeros_like(self.scores["lm.lm_head.weight"])
-
         self.accumulated = {
-            i: {"sum": torch.sum(param).item(), "mean": torch.mean(param).item(), "std": torch.std(param).item()}
-            for i, param in self.scores.items()
+            i: {"sum": torch.sum(param).item(),
+                "mean": torch.mean(param).item(), 
+                "std": torch.std(param).item()}
+                for i, param in self.scores.items()
         }
         return self.scores, self.accumulated
-
+    
     def compute_regularization_scores(self):
         # Compute the regularization score for the layer. This is just the test map times the parameters.
         # overwrite train_grads to save memory
-        # Create TensorDicts for easier batched operations
-
-        # Vectorized computation across all tensors
-        # scores_td = -(params_td * test_grads_td * weight_decays_td * learning_rates_td)
         self.scores = -self.get_tensordict_from_generator(self.model0.named_parameters())
         self.scores *= self.test_gradients * self.test_grad_scaling * self.weight_decay * self.learning_rate
 
-        # self.scores["lm.lm_head.weight"] = torch.zeros_like(self.scores["lm.lm_head.weight"])
-        # self.scores = {
-        #         i: -(deepcopy(param.data) * self.test_gradients[i] * 0.1 * self.learning_rate[i])
-        #         for i, param in self.model0.named_parameters()
-        #     }
-
-        # self.scores["lm.lm_head.weight"] = torch.zeros_like(self.scores["lm.lm_head.weight"])
-
-        # print(self.scores["lm.transformer.wte.weight"].sum())
-        # self.scores["lm.transformer.wte.weight"] *= 2
-
         self.accumulated = {
-            i: {"sum": torch.sum(param).item(), "mean": torch.mean(param).item(), "std": torch.std(param).item()}
+            i: {
+                "sum": torch.sum(param).item(),
+                "mean": torch.mean(param).item(),
+                "std": torch.std(param).item()
+            }
             for i, param in self.scores.items()
-        }
+            }
         return self.scores, self.accumulated
 
     def compute_first_moment_scores(self):
         # Compute the first moment score for the layer. This is just the test map times the parameters.
-        # overwrite train_grads to save memory
         self.scores = self.first_moment * self.beta1 * self.learning_rate
-        self.scores /= 1 - self.beta1**self.current_step
-        self.scores /= self.second_moment.sqrt() / ((1 - (self.beta2**self.current_step)) ** 0.5) + 1e-8
+        self.scores /= (1 - self.beta1 ** self.current_step)
+        self.scores /= ((self.second_moment.sqrt() / ((1 - (self.beta2 ** self.current_step))**0.5) + 1e-8))
         self.scores = -self.scores * self.test_gradients * self.test_grad_scaling
-
+  
         self.accumulated = {
-            i: {"sum": torch.sum(param).item(), "mean": torch.mean(param).item(), "std": torch.std(param).item()}
+            i: {
+                "sum": torch.sum(param).item(),
+                "mean": torch.mean(param).item(),
+                "std": torch.std(param).item()
+            }
             for i, param in self.scores.items()
         }
         return self.scores, self.accumulated
-
+    
     def reset(self):
         """
         Reset the layer to its initial state.
@@ -301,20 +233,15 @@ class ReplicatedModel(nn.Module):
             param.grad = None
         for param in self.interpolated_model.parameters():
             param.grad = None
-        self.test_gradients = TensorDict(
-            {
-                param[0]: torch.zeros_like(param[1].data)
-                for param in self.model1.named_parameters()
-                if param[1].requires_grad
-            }
-        )
+        # self.train_gradients = {param[0]: torch.zeros_like(param[1].data) for param in self.model0.named_parameters() if param[1].requires_grad}
+        self.test_gradients = TensorDict({param[0]: torch.zeros_like(param[1].data) for param in self.model1.named_parameters() if param[1].requires_grad})
         self.scores = None
 
         self.current_forward_alpha = 0.5 / self.num_steps
         self.completed_integral_steps = 0
         self.eval()
         self.reset_gradients()
-
+    
     def reset_alpha(self):
         """
         Reset the alpha value for the layer.
@@ -342,32 +269,22 @@ class ReplicatedModel(nn.Module):
 
 
 class StepExplainer:
-    """
-    Base class for explaining one optimizer update with an accelerated model.
-
-    Subclasses must reconstruct the checkpoint state in ``load_checkpoint`` and
-    create ``self.wrapped_model`` in ``compute_step_model``. The wrapped model
-    compares the model before and after one optimizer step and is then used by
-    ``compute_influence_scores`` to decompose the loss change into train-data,
-    regularization, and first-moment terms.
-    """
-
-    def __init__(
-        self,
-        checkpoint_path,
-        test_instances=None,
-        save_all_scores=False,
-        ignore_train_types=True,
-        expl_type="outputs",  # alternatively, 'loss' will be implemented
-        score_path=None,
-        num_steps=10,
-        log_bf16=True,
-        compute_sim_scores=False,
-        test_batch_limit=-1,
-        debug=False,
-    ):
-
+    def __init__(self, 
+                 checkpoint_path,
+                 test_instances=None,
+                 save_all_scores=False,
+                 ignore_train_types=True,
+                 expl_type="outputs",  # alternatively, 'loss' will be implemented
+                 score_path=None,
+                 num_steps=10,
+                 log_bf16=True,
+                 compute_sim_scores=False,
+                 test_batch_limit=-1,
+                 debug=False,):
+        
+        # ask accelerator to load checkpoint
         self.accelerator = None
+        # self.accelerator.load_state(checkpoint_path)
 
         self.model = None  # maybe we need a wrapper for this to get accelerate to parallelize it correctly
         self.optimizer = None
@@ -381,7 +298,7 @@ class StepExplainer:
         self.log_bf16 = log_bf16
         self.compute_sim_scores = compute_sim_scores
 
-        self.debug = debug
+        self.debug=debug
         self.ignore_train_types = ignore_train_types
         self.expl_type = expl_type
 
@@ -412,20 +329,21 @@ class StepExplainer:
         if self.optimizer_state_mapping is None:
             self.optimizer_state_mapping = {}
             for param_group in self.optimizer.state_dict()["param_groups"]:
-                for param_id, name in zip(param_group["params"], param_group["param_names"]):
-                    self.optimizer_state_mapping[name] = param_id
-
+                for id, name in zip(param_group["params"], param_group["param_names"]):
+                    self.optimizer_state_mapping[name] = id
+        
         if self.optimizer_pre is None:
             self.optimizer_pre = deepcopy(self.optimizer)
+
         self.compute_step_model()
 
+         # add ids for train sample types
         self.train_types = list(self.train_instances.keys())
-
         self.test_types = list(self.test_instances.keys())
 
     def load_checkpoint(self, path=None):
         raise NotImplementedError("This method should be implemented in a subclass.")
-
+    
     def compute_step_model(self):
         raise NotImplementedError("This method should be implemented in a subclass.")
 
@@ -437,54 +355,51 @@ class StepExplainer:
         """
         for name, layer in zip(model.named_children(), model.children()):
             # recursively wrap submodules
-
+            
             if isinstance(layer, nn.Module):
                 subprefix = prefix + "." + name[0] if prefix != "" else name[0]
                 if len(list(layer.children())) > 0:
                     # If the layer has children, recursively wrap them
                     # print(f"Entering submodule: {name[0]} ({subprefix})")
                     new = self._replace_history_layers(subprefix, layer)
-
+                
                 else:
                     if isinstance(layer, nn.Dropout):
                         new = DropoutWHistory(p=layer.p, inplace=layer.inplace)
                     elif isinstance(layer, nn.LayerNorm):
-                        new = LayerNormWHistory(
-                            layer.normalized_shape,
-                            layer.eps,
-                            layer.elementwise_affine,
-                            weight_param=layer.weight,
-                            bias_param=layer.bias,
-                        )
+                        new = LayerNormWHistory(layer.normalized_shape, 
+                                                layer.eps, 
+                                                layer.elementwise_affine,
+                                                weight_param=layer.weight,
+                                                bias_param=layer.bias)
                     else:
                         new = layer
-
+        
                 setattr(model, name[0], new)
-
+            
         return model
 
     def _wrap_model(self, prefix, model0, model1):
         """
         Wrap only the overall model. Don't wrap submodules.
         """
-        return ReplicatedModel(
-            prefix,
-            model0,
-            model1,
-            self._get_optimizer_state(model0, prefix),
-            self.gradient_scaling,
-            self.step_id + 1,  # see: https://github.com/pytorch/pytorch/blob/main/torch/optim/adam.py#L347
-            num_steps=self.num_steps,
-            train_grad_scaling=self.train_grad_scaling,
-            test_grad_scaling=self.test_grad_scaling,
-        )
-
+        return ReplicatedModel(prefix, 
+                               model0, 
+                               model1, 
+                               self._get_optimizer_state(model0, prefix), 
+                               self.gradient_scaling, 
+                               self.step_id + 1, # see: https://github.com/pytorch/pytorch/blob/main/torch/optim/adam.py#L347
+                               num_steps=self.num_steps,
+                               train_grad_scaling=self.train_grad_scaling,
+                               test_grad_scaling=self.test_grad_scaling,)
+        
+    
     def _get_optimizer_state(self, layer, name):
         """
         Get the optimizer state for the given layer. Only supports AdamW optimizer for now.
         """
         # print("Getting optimizer state for layer:", name)
-        param_names = [name + "." + n[0] for n in layer.named_parameters() if n[1].requires_grad]
+        param_names = [name + "."+ n[0] for n in layer.named_parameters() if n[1].requires_grad]
         # print("Parameter names:", param_names)
         # check if we have tied weights
         if self.tied_layer_map is not None:
@@ -498,21 +413,24 @@ class StepExplainer:
         param_name_ids = [self.optimizer_state_mapping[n.lstrip(r"\.")] for n in param_names]
         # print("Parameter name ids:", param_name_ids)
         # print()
-        param_optimizer_states = {n: dict() for n in param_names}
+        param_optimizer_states = {n : dict() for n in param_names}
 
         # add learning rate, weight decay, ... if available
         # iterate over param groups
         for k, n in zip(param_name_ids, param_names):
             for j, param_group in enumerate(self.optimizer_pre.state_dict()["param_groups"]):
                 if k in param_group["params"]:
+                    # second moment from post-optimization step
+                    # param_optimizer_states[n]["exp_avg_new"] = self.optimizer.state_dict()["state"][k]["exp_avg"]
+                    # param_optimizer_states[n]["exp_avg_sq_old"] = self.optimizer_pre.state_dict()["state"][k]["exp_avg_sq"]
                     param_optimizer_states[n]["exp_avg_sq"] = self.optimizer.state_dict()["state"][k]["exp_avg_sq"]
                     param_optimizer_states[n]["exp_avg"] = self.optimizer_pre.state_dict()["state"][k]["exp_avg"]
                     param_optimizer_states[n]["weight_decay"] = param_group["weight_decay"]
                     param_optimizer_states[n]["lr"] = param_group["lr"]
-                    param_optimizer_states[n]["betas"] = param_group["betas"]  # , (0.9, 0.999))
-                    param_optimizer_states[n]["eps"] = param_group["eps"]  # , 1e-8)
+                    param_optimizer_states[n]["betas"] = param_group["betas"] # , (0.9, 0.999))
+                    param_optimizer_states[n]["eps"] = param_group["eps"] # , 1e-8)
                     # param_optimizer_states[n]["initial_lr"] = param_group.get("initial_lr", 0.0)
-
+                    
         return param_optimizer_states
 
     def _get_masks(self, outputs, lm_labels, first_only=True):
@@ -532,9 +450,9 @@ class StepExplainer:
         for batch_idx in range(outputs.shape[0]):
             for seq_idx in range(outputs.shape[1]):
                 if lm_labels[batch_idx, seq_idx] != -100:
-                    # Mark correct-token position in pred_pos_mask; prediction is one position before token.
-                    pred_pos_mask[batch_idx, seq_idx - 1, lm_labels[batch_idx, seq_idx]] = True
-                    pred_neg_mask[batch_idx, seq_idx - 1, lm_labels[batch_idx, seq_idx]] = False
+                    # mark the position of the correct prediction as True in pred_pos_mask (pred happens one pos before token pos)
+                    pred_pos_mask[batch_idx, seq_idx-1, lm_labels[batch_idx, seq_idx]] = True
+                    pred_neg_mask[batch_idx, seq_idx-1, lm_labels[batch_idx, seq_idx]] = False
                     if first_only:
                         break
 
@@ -563,7 +481,7 @@ class StepExplainer:
         # scores = self.wrapped_model.scores
         # accumulated = self.wrapped_model.accumulated
         return scores, accumulated
-
+    
     def reset_gradients(self):
         """
         Reset the gradients for the model.
@@ -584,22 +502,21 @@ class StepExplainer:
         for i in range(self.num_steps):
             # compute test grads
             self.wrapped_model.eval()
-            out = self.wrapped_model.forward(
-                **test_instances,
-                all_outs=True,
-            )
-
+            out = self.wrapped_model.forward(**test_instances,
+                                                all_outs=True, 
+                                            )
+            
             if self.expl_type == "loss":
                 # apply loss
-                out = [out[0]]
+                out = [out[0]] 
             elif self.expl_type == "outputs":
                 out = out[1]
-
+            
             sum_corr = torch.sum(out[mask], dim=None)
 
             # sum_corr.backward()
             self.accelerator.backward(sum_corr)
-
+            
             # update feature map (call this for all replicated layers)
             self.wrapped_model.update_test_gradient_integral()
             self.wrapped_model.reset_gradients()  # reset gradients after each step
@@ -619,6 +536,7 @@ class StepExplainer:
         test_counter = -1
 
         for test_type, test_instances in tqdm(self.test_instances.items()):
+
             test_counter += 1
             if self.test_batch_limit > 0 and test_counter >= self.test_batch_limit:
                 print(f"Reached test batch limit of {test_counter}, stopping further computations.")
@@ -627,20 +545,26 @@ class StepExplainer:
             if self.expl_type == "loss":
                 # we are decomposing the loss, so out should be the loss
                 # apply loss to out
-                out_classes = [("loss", 0)]  # fix later
+                out_classes = [("loss", 0)] # fix later
 
             elif self.expl_type == "outputs":
                 raise NotImplementedError("Output decomposition is currently not implemented.")
+                # we're decomposing outputs (using addition of correct+incorrect trick)
+                # iter over correct and incorrect outputs (for test map)
+                # this is the most inefficient way to get the out dims but hey
+                # self.wrapped_model.eval()
+                # out = self.wrapped_model.forward(**test_instances, all_outs=True)[1]  # outputs
+                # correct_mask, incorrect_mask = self._get_masks(out, test_instances["lm_labels"])
+                # out_classes = [("correct", correct_mask), ("incorrect", incorrect_mask)]
 
             for corr, mask in out_classes:
                 ################ TEST FEATURE MAP INTEGRAL (EXPENSIVE) ################################
-                # compute the test integral
+                # compute the test integral 
                 self.compute_test_integral(test_instances, mask)
-
+                
                 ################ END OF TEST FEATURE MAP INTEGRAL (EXPENSIVE) ################################
-
-                # Train gradients are computed with alpha=0, i.e. model0.
-                self.wrapped_model.reset_alpha()
+  
+                self.wrapped_model.reset_alpha()  # train grads are computed with alpha=0 (i.e. model0), so reset alpha to 0
                 # for each train type, compute influence scores
 
                 for train_type, train_batch in tqdm(self.train_instances.items()):
@@ -649,7 +573,9 @@ class StepExplainer:
                     self.wrapped_model.reset_gradients()
                     self.wrapped_model.train()
 
-                    out_train = self.wrapped_model.forward(**train_batch, all_outs=True, alpha=0)
+                    out_train = self.wrapped_model.forward(**train_batch, all_outs=True, 
+                                                           #num_items_in_batch=512,
+                                                           alpha=0) # todo: get actual batch size
 
                     if self.expl_type == "loss":
                         # apply loss
@@ -659,12 +585,20 @@ class StepExplainer:
                         out_train = out_train[1]
                         train_mask, _ = self._get_masks(out_train, train_batch["lm_labels"])
 
+                    # print non-zero elements in train_mask
+                    # print indices of non zero
                     sum_corr = torch.sum(out_train[train_mask], dim=None)
+                    # sum_corr.backward()
                     self.accelerator.backward(sum_corr)
+                
+                    # self.wrapped_model.log_train_gradient()
 
+                    # recursively compute and extract scores
                     scores, accumulated = self.compute_and_extract_scores(self.wrapped_model, "", scores={})
 
+                    # save scores to disk
                     self.log_scores(scores, accumulated, train_type, test_type, corr)
+                    # print(test_type, train_type, corr, "done.")
 
                 self.wrapped_model.reset_gradients()
                 # compute regularization scores
@@ -681,7 +615,7 @@ class StepExplainer:
             print("Computing similarities between influence scores...")
             self.compute_similarities()
             print("Similarity computation completed.")
-
+    
     def _get_instance_length(self, instances):
         """
         Get the length of the instance. E.g., number of tokens in the batch.
@@ -697,24 +631,17 @@ class StepExplainer:
         """
         # remove number suffixes from train type
         train_type_normalized = re.sub(r"_\d+$", "", train_type)
-        # if ignore train type, we only want one train influence score per test type
-        # if self.ignore_train_types:
-        #     train_type_normalized = "all_train"
-
         key = (train_type_normalized, test_type, corr)
-
-        # if self.log_bf16:
-        #     for par_name, par_scores in scores.items():
-        #         scores[par_name] = par_scores.to(torch.bfloat16)
 
         if key not in self.all_scores.keys():
             if self.save_all_scores or self.compute_sim_scores:
                 self.all_scores[key] = deepcopy(scores.detach().cpu().to_dict())
 
         elif self.save_all_scores:
-            for par_name, par_scores in scores.items():
-                self.all_scores[key][par_name] += par_scores.detach().cpu()
+                for par_name, par_scores in scores.items():
+                    self.all_scores[key][par_name] += par_scores.detach().cpu()
 
+        
         if key not in self.acc_scores.keys():
             self.acc_scores[key] = deepcopy(accumulated)
             self.acc_scores[key]["num_vals"] = 1
@@ -744,17 +671,14 @@ class StepExplainer:
                 for par_name, par_scores1 in scores.items():
                     par_scores2 = scores2[par_name]
                     # put both on gpu
-                    par_scores1["scores"] = par_scores1["scores"]  # .to(self.accelerator.device)
-                    par_scores2["scores"] = par_scores2["scores"]  # .to(self.accelerator.device)
+                    par_scores1["scores"] = par_scores1["scores"]#.to(self.accelerator.device)
+                    par_scores2["scores"] = par_scores2["scores"]#.to(self.accelerator.device)
 
                     sums = torch.sum(par_scores1["scores"] * par_scores2["scores"], dim=None)
                     norms = torch.norm(par_scores1["scores"]) * torch.norm(par_scores2["scores"])
 
-                    sims[par_name] = (
-                        (sums / (norms + 0.000001)).detach().clone().item(),
-                        norms.detach().clone().item(),
-                    )
-
+                    sims[par_name] = ((sums / (norms + 0.000001)).detach().clone().item(), norms.detach().clone().item())
+                    
                     if self.layer_mapping is not None:
                         for k, v in self.layer_mapping.items():
                             # sum up all scores in the layer
@@ -774,6 +698,7 @@ class StepExplainer:
 
         torch.cuda.empty_cache()
 
+            
     def save_scores_to_disk(self):
         """
         Save all computed scores to disk.
@@ -784,7 +709,7 @@ class StepExplainer:
 
         if self.save_all_scores and self.save_all_scores:
             torch.save(self.all_scores, os.path.join(self.score_path, "scores.pt"))
-
+        
         if self.acc_scores is not None:
             torch.save(self.acc_scores, os.path.join(self.score_path, "accumulated_scores.pt"))
 
@@ -797,13 +722,14 @@ class StepExplainer:
         shapes = {}
         for par_name, par in self.wrapped_model.model0.named_parameters():
             shapes[par_name] = list(par.shape)
-
+            
         with open(os.path.join(self.score_path, "parameter_shapes.json"), "w") as f:
             json.dump(shapes, f, indent=4)
+        
 
         if self.acc_layer_scores is not None:
             torch.save(self.acc_layer_scores, os.path.join(self.score_path, "accumulated_layer_scores.pt"))
-
+        
     def compute_and_extract_scores(self, wrapped_model, rec_name, scores):
         """
         Compute and extract influence scores from the model.
@@ -814,13 +740,12 @@ class StepExplainer:
         accumulated = wrapped_model.accumulated
         return scores, accumulated
 
+
     def verify_loss_decomposition(self):
         # sum up scores and check accuracy of decomposition vs actual output
 
         if self.expl_type != "loss":
-            print(
-                "Explanation type is not loss. This function is likely not implemented for the current configuration."
-            )
+            print("Explanation type is not loss. This function is likely not implemented for the current configuration.")
 
         results = {}
 
@@ -829,9 +754,10 @@ class StepExplainer:
         fms = []
         actuals = []
 
-        counter = -1
+        counter = -1 
 
         for test_type, test_instances in self.test_instances.items():
+
             counter += 1
             if self.test_batch_limit > 0 and counter >= self.test_batch_limit:
                 print(f"Reached test batch limit of {counter}, stopping further computations.")
@@ -841,10 +767,11 @@ class StepExplainer:
 
             print(test_type)
 
-            indices = [key for key in self.acc_scores.keys() if key[1] == test_type]
+            indices = [key for key in self.acc_scores.keys()
+                        if key[1] == test_type] 
             # print(indices)
             # print(self.all_scores.keys())
-            # type_scores = [self.all_scores[key] for key in indices]
+            # type_scores = [self.all_scores[key] for key in indices] 
 
             reg_scores = []
             ker_scores = []
@@ -867,16 +794,16 @@ class StepExplainer:
                 loss_pre = self.wrapped_model.model0(**test_instances).loss * self.test_loss_scaling
                 loss_post = self.wrapped_model.model1(**test_instances).loss * self.test_loss_scaling
 
-            # print('num test samples: ', test_instances['target_ids'].shape[0])
+            # print('num test samples: ', test_instances['target_ids'].shape[0])    
             print(loss_pre, loss_post)
             torch.cuda.empty_cache()
             actual = loss_post - loss_pre
-            print("actual change", (loss_post - loss_pre).item())
+            print('actual change', (loss_post - loss_pre).item())
 
             reg_sums = []
             for ts in reg_scores:
                 # print(ts)
-                reg_sums.append(ts)
+               reg_sums.append(ts)
 
             s_reg = sum(reg_sums)
 
@@ -902,33 +829,32 @@ class StepExplainer:
 
             s = s_reg + s_fm + s_ker
 
-            print("estimated", s)
+            print('estimated', s)
 
             delta = loss_post - loss_pre - s
 
             # print("r/reg", (actual - s_fm) / s_reg )
 
-            print("delta", delta.item())
+            print('delta', delta.item())
 
-            print("actual/estimated", (actual / s).item())
+            print('actual/estimated', (actual / s).item())
 
-            print("estimated/actual", (s / actual).item())
+            print('estimated/actual', (s / actual).item())
 
-            results[test_type] = {
-                "loss_pre": loss_pre.item(),
-                "loss_post": loss_post.item(),
-                "actual_change": (loss_post - loss_pre).item(),
-                "reg_sum": s_reg,
-                "ker_sum": s_ker,
-                "fm_sum": s_fm,
-                "estimated_change": s,
-                "delta": delta.item(),
-                "actual/estimated": (actual / s).item(),
-                "estimated/actual": (s / actual).item(),
-                "len(ker)": len(ker_scores),
-                "len(fm)": len(fm_scores),
-                "len(reg)": len(reg_scores),
-            }
+            results[test_type] = {"loss_pre": loss_pre.item(), 
+                                  "loss_post": loss_post.item(), 
+                                  "actual_change": (loss_post - loss_pre).item(),
+                                  "reg_sum": s_reg,
+                                  "ker_sum": s_ker,
+                                  "fm_sum": s_fm,
+                                  "estimated_change": s, 
+                                  "delta": delta.item(),
+                                  "actual/estimated": (actual / s).item(),
+                                  "estimated/actual": (s / actual).item(),
+                                  "len(ker)": len(ker_scores),
+                                  "len(fm)": len(fm_scores),
+                                  "len(reg)": len(reg_scores),
+                                  }
 
             regs.append(s_reg)
             kers.append(s_ker)
@@ -940,7 +866,7 @@ class StepExplainer:
             tactuals = torch.tensor(actuals)
             tregs = torch.tensor(regs)
 
-        print("Deltas:", [results[k]["delta"] for k in results.keys()])
+        print("Deltas:", [results[k]['delta'] for k in results.keys()])
 
         X = torch.stack([tregs, tkers, tfms], dim=1)
         y = tactuals
@@ -954,7 +880,7 @@ class StepExplainer:
         results["reg_ker_fm_weights(reg,ker,fm)"] = w.tolist()
 
         X2 = X = torch.stack([tregs, tkers], dim=1)
-        y2 = tactuals - tfms
+        y2 = tactuals - tfms 
         w2 = np.linalg.lstsq(X2, y2, rcond=None)[0]
         print("Weights without first moment:", w2)
         print("Predictions without first moment:", X2 @ w2)
@@ -963,6 +889,7 @@ class StepExplainer:
         results["reg_ker_weights_no_fm(reg,ker)"] = w2.tolist()
 
         return results, regs, kers, fms, actuals
+    
 
 
 class Explainer(StepExplainer):
@@ -970,31 +897,26 @@ class Explainer(StepExplainer):
     This is a sample class inheriting from StepExplainer and describing
     the methods and fields that need to be implemented in inheriting classes.
 
-    Use this dummy subclass as a checklist when adapting StepExplainer to a new
-    training stack. See the LLaMA and EuroLLM subclasses for working examples.
+    See gpt2_explainer.py for a working example.
     """
-
-    def __init__(
-        self,
-        checkpoint_path,
-        ## your additional arguments here
-        test_instances=None,
-        save_all_scores=False,
-        ignore_train_types=True,
-        expl_type="outputs",  # alternatively, 'loss' will be implemented
-        num_steps=10,
-        debug=False,
-    ):
-        super().__init__(
-            checkpoint_path=checkpoint_path,
-            test_instances=test_instances,
-            save_all_scores=save_all_scores,
-            ignore_train_types=ignore_train_types,
-            expl_type=expl_type,
-            num_steps=num_steps,
-            debug=debug,
-        )
-        # your additional initialization code here
+    def __init__(self, 
+                 checkpoint_path,
+                 ## your additional arguments here
+                 test_instances=None,
+                 save_all_scores=False,
+                 ignore_train_types=True,
+                 expl_type="outputs",  # alternatively, 'loss' will be implemented
+                 num_steps=10,
+                 debug=False,):
+        super().__init__(checkpoint_path,
+                         test_instances,
+                         save_all_scores,
+                         ignore_train_types,
+                         expl_type,
+                         num_steps,
+                         debug)
+        ## your additional initialization code here
+                 
 
     def load_checkpoint(self, path=None):
         """
@@ -1025,7 +947,7 @@ class Explainer(StepExplainer):
         # optional mapping of layer names to groups of layer names for similarity computation
         self.layer_mapping = None
 
-        # clipping factor for gradients (from the current update step)
+        # clipping factor for gradients (from the current update step)  
         # self.clip_norm_factor = 1.0
 
     def compute_step_model(self):
@@ -1037,10 +959,12 @@ class Explainer(StepExplainer):
         and scorecomputations).
         """
         # Implement step model computation logic here
-
+        
         ### compute update step ###
         updated_model = None  # model after the update step
 
-        # if you have implemented load_checkpoint correctly, this helps you get the correct wrapped model
+        # if you have implemented lod_checkpoint correctly, this helps you get the correct wrapped model
         # i.e. an instance of ReplicatedModel
         self.wrapped_model = self._wrap_model("", self.model, updated_model)
+
+        
